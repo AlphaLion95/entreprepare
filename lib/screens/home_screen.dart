@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/business_service.dart';
 import '../models/business.dart';
 import '../screens/quiz/quiz_screen.dart';
+import 'business/business_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _loading = true;
   bool _quizCompleted = false;
   List<Business> _topBusinesses = [];
+  List<Business> _savedBusinesses = [];
 
   @override
   void initState() {
@@ -24,9 +26,39 @@ class _HomeScreenState extends State<HomeScreen> {
     _initializeHome();
   }
 
-  Future<void> _initializeHome() async {
+  Future<void> _loadSavedBusinesses() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      setState(() => _savedBusinesses = []);
+      return;
+    }
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('favorites')
+          .get();
+      final saved = snap.docs.map((d) {
+        final m = Map<String, dynamic>.from(d.data());
+        return Business.fromMap(m, docId: d.id);
+      }).toList();
+      if (mounted) setState(() => _savedBusinesses = saved);
+    } catch (_) {
+      if (mounted) setState(() => _savedBusinesses = []);
+    }
+  }
+
+  Future<void> _initializeHome() async {
+    setState(() => _loading = true);
+
+    // load saved favorites first
+    await _loadSavedBusinesses();
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
 
     try {
       final quizCompleted = await _businessService.fetchUserQuizStatus(
@@ -40,7 +72,9 @@ class _HomeScreenState extends State<HomeScreen> {
             .collection('users')
             .doc(user.uid)
             .get();
-        answers = userDoc.data()?['quizAnswers'] ?? {};
+        answers =
+            (userDoc.data()?['quizAnswers'] ?? {}) as Map<String, dynamic>;
+        // safe fetch of top businesses; getTop3 should handle timeouts/fallbacks
         topBusinesses = await _businessService.getTop3(answers, topN: 3);
       }
 
@@ -48,10 +82,11 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _quizCompleted = quizCompleted;
           _topBusinesses = topBusinesses;
-          _loading = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
+      // optional: print('Home init error: $e');
+    } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -103,44 +138,106 @@ class _HomeScreenState extends State<HomeScreen> {
     String capitalize(String s) =>
         s.isNotEmpty ? s[0].toUpperCase() + s.substring(1) : s;
 
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 3,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              b.title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              b.description,
-              style: const TextStyle(fontSize: 14, color: Colors.black87),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                if (b.personality.isNotEmpty)
-                  Chip(label: Text(b.personality.map(capitalize).join(', '))),
-                if (b.budget.isNotEmpty)
-                  Chip(
-                    label: Text(
-                      'Budget: ${b.budget.map(capitalize).join(', ')}',
+    final tag = 'business-${b.docId ?? b.title}';
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BusinessDetailScreen(business: b, answers: null),
+          ),
+        );
+      },
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 2,
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Hero(
+                tag: tag,
+                child: CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.blue.shade100,
+                  child: Text(
+                    (b.title.isNotEmpty ? b.title[0].toUpperCase() : '?'),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-                if (b.time.isNotEmpty)
-                  Chip(
-                    label: Text('Time: ${b.time.map(capitalize).join(', ')}'),
-                  ),
-              ],
-            ),
-          ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            b.title,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(Icons.chevron_right, color: Colors.black26),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      b.description,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        if (b.personality.isNotEmpty)
+                          Chip(
+                            label: Text(
+                              b.personality.map(capitalize).join(', '),
+                            ),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        if (b.budget.isNotEmpty)
+                          Chip(
+                            label: Text(
+                              'Budget: ${b.budget.map(capitalize).join(', ')}',
+                            ),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        if (b.time.isNotEmpty)
+                          Chip(
+                            label: Text(
+                              'Time: ${b.time.map(capitalize).join(', ')}',
+                            ),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -158,6 +255,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.only(top: 16, bottom: 32),
                 children: [
                   _buildQuizCard(),
+
+                  // SAVED section (inserted here)
+                  if (_savedBusinesses.isNotEmpty) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        'Saved',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    ..._savedBusinesses.map(_buildBusinessCard),
+                    const SizedBox(height: 8),
+                  ],
+
+                  // Recommended for You (existing block)
                   if (_quizCompleted && _topBusinesses.isNotEmpty) ...[
                     const Padding(
                       padding: EdgeInsets.symmetric(

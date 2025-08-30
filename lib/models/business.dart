@@ -26,18 +26,27 @@ class Business {
   });
 
   factory Business.fromMap(Map<String, dynamic> map, {String? docId}) {
+    // helper to normalize a field that may be String, Iterable, Map or already a List<String>
+    List<String> _toStringList(dynamic v) {
+      if (v == null) return <String>[];
+      if (v is String) return [v];
+      if (v is Iterable) return v.map((e) => e?.toString() ?? '').toList();
+      if (v is Map) return v.values.map((e) => e?.toString() ?? '').toList();
+      return [v.toString()];
+    }
+
     return Business(
-      title: map['title'] ?? '',
-      personality: List<String>.from(map['personality'] ?? []),
-      budget: List<String>.from(map['budget'] ?? []),
-      time: List<String>.from(map['time'] ?? []),
-      skills: List<String>.from(map['skills'] ?? []),
-      environment: List<String>.from(map['environment'] ?? []),
-      description: map['description'] ?? '',
-      cost: map['cost'] ?? '',
-      earnings: map['earnings'] ?? '',
-      initialSteps: List<String>.from(map['initialSteps'] ?? []),
-      docId: docId,
+      title: map['title']?.toString() ?? '',
+      personality: _toStringList(map['personality']),
+      budget: _toStringList(map['budget']),
+      time: _toStringList(map['time']),
+      skills: _toStringList(map['skills']),
+      environment: _toStringList(map['environment']),
+      description: map['description']?.toString() ?? '',
+      cost: map['cost']?.toString() ?? '',
+      earnings: map['earnings']?.toString() ?? '',
+      initialSteps: _toStringList(map['initialSteps']),
+      docId: docId ?? (map['__docId']?.toString()),
     );
   }
 

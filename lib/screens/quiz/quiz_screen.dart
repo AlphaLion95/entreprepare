@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/quiz_question.dart';
 import '../../services/quiz_service.dart';
 import '../../screens/quiz/result_screen.dart';
+import '../../models/business.dart';
 
 class QuizScreen extends StatefulWidget {
   const QuizScreen({super.key});
@@ -72,11 +74,31 @@ class _QuizScreenState extends State<QuizScreen> {
         setState(() => _saving = false);
         return;
       }
+
       await _quizService.saveAnswers(_answers);
+
+      // try computing top businesses here with a short timeout
+      // increase timeout to give compute a bit more time on larger datasets
+      List<Business>? top;
+      try {
+        top = await _quizService
+            .getTopBusinesses(_answers, topN: 3)
+            .timeout(const Duration(seconds: 8)); // increased timeout
+        // top may be an empty list meaning "no matches" (keep that)
+      } on TimeoutException {
+        // explicitly indicate "not computed" so ResultScreen will fetch/retry in background
+        top = null;
+      } catch (e) {
+        // on other errors we also let ResultScreen try to fetch
+        top = null;
+      }
+
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => ResultScreen(answers: _answers)),
+          MaterialPageRoute(
+            builder: (_) => ResultScreen(answers: _answers, topBusinesses: top),
+          ),
         );
       }
     } catch (e) {
