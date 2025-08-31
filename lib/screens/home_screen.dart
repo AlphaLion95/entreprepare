@@ -5,6 +5,7 @@ import '../services/business_service.dart';
 import '../models/business.dart';
 import '../screens/quiz/quiz_screen.dart';
 import 'business/business_detail_screen.dart';
+import 'learn/learn_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -246,7 +247,20 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Home')),
+      appBar: AppBar(
+        title: const Text('Home'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.school),
+            tooltip: 'Learning Hub',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LearnListScreen()),
+            ),
+          ),
+        ],
+      ),
+
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
