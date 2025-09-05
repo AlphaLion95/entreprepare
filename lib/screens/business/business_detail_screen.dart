@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/business.dart';
+import '../planner/plan_editor_screen.dart';
 
 class BusinessDetailScreen extends StatelessWidget {
   final Business business;
@@ -18,8 +19,9 @@ class BusinessDetailScreen extends StatelessWidget {
   }
 
   List<Widget> _buildSuitability() {
-    if (answers == null)
+    if (answers == null) {
       return [const Text('No quiz answers available to explain suitability.')];
+    }
 
     final List<Widget> reasons = [];
     final Map<String, List<String>> bmap = {
@@ -375,14 +377,20 @@ class BusinessDetailScreen extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Start checklist (not implemented)',
-                                ),
+                          onPressed: () async {
+                            // open Plan editor prefilled by this business
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    PlanEditorScreen(business: business),
                               ),
                             );
+                            if (result == true) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Plan created')),
+                              );
+                            }
                           },
                           icon: const Icon(Icons.playlist_add_check),
                           label: const Text('Start'),

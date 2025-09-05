@@ -25,11 +25,12 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
 
   Future<void> _load() async {
     final g = await _service.fetchGuideById(widget.guideId);
-    if (mounted)
+    if (mounted) {
       setState(() {
         _guide = g;
         _loading = false;
       });
+    }
   }
 
   Future<void> _openUrl(String url) async {
@@ -45,10 +46,12 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading)
+    if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (_guide == null)
+    }
+    if (_guide == null) {
       return Scaffold(body: Center(child: Text('Guide not found')));
+    }
 
     final g = _guide!;
     return Scaffold(

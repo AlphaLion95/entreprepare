@@ -1,6 +1,5 @@
 // ...existing code...
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/business_service.dart';
 import '../../models/business.dart';
 import '../home_screen.dart';

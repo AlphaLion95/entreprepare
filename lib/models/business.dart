@@ -27,7 +27,7 @@ class Business {
 
   factory Business.fromMap(Map<String, dynamic> map, {String? docId}) {
     // helper to normalize a field that may be String, Iterable, Map or already a List<String>
-    List<String> _toStringList(dynamic v) {
+    List<String> toStringList(dynamic v) {
       if (v == null) return <String>[];
       if (v is String) return [v];
       if (v is Iterable) return v.map((e) => e?.toString() ?? '').toList();
@@ -37,15 +37,15 @@ class Business {
 
     return Business(
       title: map['title']?.toString() ?? '',
-      personality: _toStringList(map['personality']),
-      budget: _toStringList(map['budget']),
-      time: _toStringList(map['time']),
-      skills: _toStringList(map['skills']),
-      environment: _toStringList(map['environment']),
+      personality: toStringList(map['personality']),
+      budget: toStringList(map['budget']),
+      time: toStringList(map['time']),
+      skills: toStringList(map['skills']),
+      environment: toStringList(map['environment']),
       description: map['description']?.toString() ?? '',
       cost: map['cost']?.toString() ?? '',
       earnings: map['earnings']?.toString() ?? '',
-      initialSteps: _toStringList(map['initialSteps']),
+      initialSteps: toStringList(map['initialSteps']),
       docId: docId ?? (map['__docId']?.toString()),
     );
   }

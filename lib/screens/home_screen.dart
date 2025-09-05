@@ -6,6 +6,11 @@ import '../models/business.dart';
 import '../screens/quiz/quiz_screen.dart';
 import 'business/business_detail_screen.dart';
 import 'learn/learn_list_screen.dart';
+import 'planner/plan_list_screen.dart';
+import 'settings_screen.dart';
+import '../screens/about_screen.dart';
+import '../services/settings_service.dart';
+import '../services/license_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,11 +25,48 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _quizCompleted = false;
   List<Business> _topBusinesses = [];
   List<Business> _savedBusinesses = [];
+  final SettingsService _settingsSvc = SettingsService();
+  String _currentPlan = 'trial';
+  final LicenseService _licenseSvc = LicenseService();
+  bool _isExpired = false;
 
   @override
   void initState() {
     super.initState();
     _initializeHome();
+    _loadSettingsBadge();
+    _checkExpiry();
+  }
+
+  Future<void> _checkExpiry() async {
+    try {
+      final expired = await _licenseSvc.isExpired();
+      if (mounted) setState(() => _isExpired = expired);
+    } catch (_) {}
+  }
+
+  void _showExpiredDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Access disabled'),
+        content: const Text(
+          'Your trial has expired. Please contact me to continue or unlock the full app.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          // optionally open payment/contact link
+        ],
+      ),
+    );
+  }
+
+  Future<void> _loadSettingsBadge() async {
+    final s = await _settingsSvc.fetchSettings();
+    if (s != null && mounted) setState(() => _currentPlan = s.plan);
   }
 
   Future<void> _loadSavedBusinesses() async {
@@ -251,11 +293,73 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Home'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'About',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AboutScreen()),
+            ),
+          ),
+          // Settings icon with small badge showing plan (T = trial, P = paid)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  tooltip: 'Settings',
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    );
+                    // refresh badge after returning
+                    _loadSettingsBadge();
+                  },
+                ),
+                if (_currentPlan.isNotEmpty)
+                  Positioned(
+                    right: 6,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _currentPlan == 'paid'
+                            ? Colors.green
+                            : Colors.orange,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        _currentPlan == 'paid' ? 'PRO' : 'TRI',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.school),
             tooltip: 'Learning Hub',
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const LearnListScreen()),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.list_alt),
+            tooltip: 'My Plans',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PlanListScreen()),
             ),
           ),
         ],

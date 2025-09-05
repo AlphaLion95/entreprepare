@@ -445,14 +445,16 @@ List<Map<String, dynamic>> _scoreAndPick(Map<String, dynamic> args) {
   String norm(dynamic v) {
     if (v == null) return '';
     if (v is String) return v.toLowerCase().trim();
-    if (v is Iterable)
+    if (v is Iterable) {
       return v.map((e) => e?.toString() ?? '').join(' ').toLowerCase().trim();
-    if (v is Map)
+    }
+    if (v is Map) {
       return v.values
           .map((e) => e?.toString() ?? '')
           .join(' ')
           .toLowerCase()
           .trim();
+    }
     return v.toString().toLowerCase().trim();
   }
 
@@ -470,8 +472,9 @@ List<Map<String, dynamic>> _scoreAndPick(Map<String, dynamic> args) {
     final b = norm(bRaw);
     if (a.isEmpty || b.isEmpty) return 0;
     if (a == b) return weight; // exact match -> full weight
-    if (b.contains(a) || a.contains(b))
+    if (b.contains(a) || a.contains(b)) {
       return (weight * 60) ~/ 100; // substring -> 60%
+    }
     final aTokens = a.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toSet();
     final bTokens = b.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toSet();
     final intersect = aTokens.intersection(bTokens).length;
@@ -482,8 +485,9 @@ List<Map<String, dynamic>> _scoreAndPick(Map<String, dynamic> args) {
       final proportion = intersect / maxTokens;
       return (weight * (proportion * 0.8)).round(); // up to 80% of weight
     }
-    if (b.startsWith(a) || a.startsWith(b))
+    if (b.startsWith(a) || a.startsWith(b)) {
       return (weight * 50) ~/ 100; // prefix similarity
+    }
     return 0;
   }
 
@@ -493,7 +497,7 @@ List<Map<String, dynamic>> _scoreAndPick(Map<String, dynamic> args) {
     final bRaw = businesses[i];
     try {
       final b = (bRaw is Map)
-          ? Map<String, dynamic>.from(bRaw as Map)
+          ? Map<String, dynamic>.from(bRaw)
           : <String, dynamic>{};
       int total = 0;
       total += scoreField(
