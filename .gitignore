@@ -60,3 +60,4 @@ build/
 # Firebase keys
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
+node_modules

@@ -23,7 +23,7 @@ class Settings {
   };
 
   factory Settings.fromMap(Map<String, dynamic> m) => Settings(
-    currency: (m['currency'] ?? 'USD').toString(),
+    currency: (m['currency'] ?? 'PHP').toString(),
     plan: (m['plan'] ?? 'trial').toString(),
     features: Map<String, bool>.from(m['features'] ?? {}),
     updatedAt: m['updatedAt'] is Timestamp
@@ -57,5 +57,20 @@ class SettingsService {
         .collection('meta')
         .doc('settings')
         .set(s.toMap(), SetOptions(merge: true));
+  }
+
+  Stream<Settings?> watchSettings() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      // Return a stream that emits null once
+      return Stream.value(null);
+    }
+    return _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('meta')
+        .doc('settings')
+        .snapshots()
+        .map((snap) => snap.exists ? Settings.fromMap(snap.data()!) : null);
   }
 }

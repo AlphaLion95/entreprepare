@@ -1,65 +1,67 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
-import 'quiz/quiz_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../services/business_service.dart';
+import 'planner/plan_list_screen.dart';
+import 'settings_screen.dart';
+import 'about_screen.dart';
+import 'learn/learn_list_screen.dart';
 
 class MainTabsPage extends StatefulWidget {
-  const MainTabsPage({super.key});
+  final int initialIndex;
+  const MainTabsPage({super.key, this.initialIndex = 0});
 
   @override
   State<MainTabsPage> createState() => _MainTabsPageState();
 }
 
 class _MainTabsPageState extends State<MainTabsPage> {
-  int _selectedIndex = 0;
-  bool _quizCompleted = false;
-  final BusinessService _businessService = BusinessService();
+  late int _selectedIndex = widget.initialIndex;
 
-  late List<Widget> _pages;
+  late final List<Widget> _pages = [
+    HomeScreen(onSelectTab: (i) => _onItemTapped(i)),
+    const PlanListScreen(),
+    const SettingsScreen(),
+    const AboutScreen(),
+    const LearnListScreen(),
+  ];
 
-  @override
-  void initState() {
-    super.initState();
-    _pages = [const HomeScreen(), const QuizScreen()];
-    _checkQuizStatus();
-  }
-
-  Future<void> _checkQuizStatus() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final status = await _businessService.fetchUserQuizStatus(user.uid);
-    if (mounted) {
-      setState(() {
-        _quizCompleted = status;
-      });
-    }
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
+  void _onItemTapped(int index) => setState(() => _selectedIndex = index);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.teal,
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-        items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.quiz),
-            label: _quizCompleted ? "Quiz (Retake)" : "Quiz (Start)",
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: _onItemTapped,
+        // colors come from NavigationBarTheme in ThemeData
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.event_note_outlined),
+            selectedIcon: Icon(Icons.event_note_rounded),
+            label: 'Plans',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings_rounded),
+            label: 'Settings',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.info_outline),
+            selectedIcon: Icon(Icons.info_rounded),
+            label: 'About',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.school_outlined),
+            selectedIcon: Icon(Icons.school_rounded),
+            label: 'Learn',
           ),
         ],
-        onTap: _onItemTapped,
       ),
     );
   }

@@ -1,8 +1,8 @@
-// Overwrite this existing file with this content (top-level settings screen)
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/settings_service.dart';
-
+import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -12,14 +12,9 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final SettingsService _svc = SettingsService();
+
   bool _loading = true;
-  String _currency = 'USD';
-  String _plan = 'trial';
-  Map<String, bool> _features = {
-    'advanced_analytics': false,
-    'unlimited_plans': false,
-    'priority_support': false,
-  };
+  String _currency = 'PHP';
 
   @override
   void initState() {
@@ -30,30 +25,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final s = await _svc.fetchSettings();
-    if (s != null) {
+    if (s != null && mounted) {
       setState(() {
         _currency = s.currency;
-        _plan = s.plan;
-        _features = {
-          'advanced_analytics': s.features['advanced_analytics'] ?? false,
-          'unlimited_plans': s.features['unlimited_plans'] ?? false,
-          'priority_support': s.features['priority_support'] ?? false,
-        };
       });
     }
-    setState(() => _loading = false);
+    if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _save() async {
     setState(() => _loading = true);
-    final s = Settings(
+    final settings = Settings(
       currency: _currency,
-      plan: _plan,
-      features: _features,
+      plan: 'trial',
+      features: {},
       updatedAt: DateTime.now(),
     );
     try {
-      await _svc.saveSettings(s);
+      await _svc.saveSettings(settings);
       if (mounted)
         ScaffoldMessenger.of(
           context,
@@ -64,14 +53,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final currencies = ['USD', 'EUR', 'PHP'];
+    final currencies = ['PHP', 'USD', 'EUR'];
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: _loading
@@ -105,47 +93,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        const Text(
-                          'Plan',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        RadioListTile<String>(
-                          title: const Text('Trial (basic features)'),
-                          value: 'trial',
-                          groupValue: _plan,
-                          onChanged: (v) => setState(() => _plan = v ?? _plan),
-                        ),
-                        RadioListTile<String>(
-                          title: const Text('Paid (full features)'),
-                          value: 'paid',
-                          groupValue: _plan,
-                          onChanged: (v) => setState(() => _plan = v ?? _plan),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Feature toggles',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        SwitchListTile(
-                          title: const Text('Advanced analytics'),
-                          value: _features['advanced_analytics'] ?? false,
-                          onChanged: (v) => setState(
-                            () => _features['advanced_analytics'] = v,
-                          ),
-                        ),
-                        SwitchListTile(
-                          title: const Text('Unlimited plans'),
-                          value: _features['unlimited_plans'] ?? false,
-                          onChanged: (v) =>
-                              setState(() => _features['unlimited_plans'] = v),
-                        ),
-                        SwitchListTile(
-                          title: const Text('Priority support'),
-                          value: _features['priority_support'] ?? false,
-                          onChanged: (v) =>
-                              setState(() => _features['priority_support'] = v),
-                        ),
-                        const SizedBox(height: 8),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
@@ -154,8 +101,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onPressed: _save,
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Account',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Signed in as: ${FirebaseAuth.instance.currentUser?.email ?? 'Unknown'}',
+                        ),
                         const SizedBox(height: 12),
-                        
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.logout),
+                            label: const Text('Sign out'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade600,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () async {
+                              await FirebaseAuth.instance.signOut();
+                              if (!mounted) return;
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                  builder: (_) => const LoginScreen(),
+                                ),
+                                (route) => false,
+                              );
+                            },
+                          ),
+                        ),
                       ],
                     ),
                   ),

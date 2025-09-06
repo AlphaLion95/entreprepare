@@ -387,9 +387,7 @@ class BusinessDetailScreen extends StatelessWidget {
                               ),
                             );
                             if (result == true) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Plan created')),
-                              );
+                              // Optional toast already shown from editor redirect
                             }
                           },
                           icon: const Icon(Icons.playlist_add_check),

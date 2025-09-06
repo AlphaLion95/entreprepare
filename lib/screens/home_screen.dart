@@ -5,15 +5,16 @@ import '../services/business_service.dart';
 import '../models/business.dart';
 import '../screens/quiz/quiz_screen.dart';
 import 'business/business_detail_screen.dart';
-import 'learn/learn_list_screen.dart';
+import '../services/plan_service.dart' as ps;
+import '../services/settings_service.dart' as ss;
+import '../models/plan.dart';
+import '../utils/currency_utils.dart';
+import 'planner/plan_detail_screen.dart';
 import 'planner/plan_list_screen.dart';
-import 'settings_screen.dart';
-import '../screens/about_screen.dart';
-import '../services/settings_service.dart';
-import '../services/license_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final void Function(int index)? onSelectTab;
+  const HomeScreen({super.key, this.onSelectTab});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -21,52 +22,20 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final BusinessService _businessService = BusinessService();
+  final ps.PlanService _planService = ps.PlanService();
+  final ss.SettingsService _settingsSvc = ss.SettingsService();
   bool _loading = true;
   bool _quizCompleted = false;
   List<Business> _topBusinesses = [];
   List<Business> _savedBusinesses = [];
-  final SettingsService _settingsSvc = SettingsService();
-  String _currentPlan = 'trial';
-  final LicenseService _licenseSvc = LicenseService();
-  bool _isExpired = false;
+  List<Plan> _plans = [];
+  String _currency = 'PHP';
+  late final Stream<ss.Settings?> _settingsStream;
 
   @override
   void initState() {
     super.initState();
     _initializeHome();
-    _loadSettingsBadge();
-    _checkExpiry();
-  }
-
-  Future<void> _checkExpiry() async {
-    try {
-      final expired = await _licenseSvc.isExpired();
-      if (mounted) setState(() => _isExpired = expired);
-    } catch (_) {}
-  }
-
-  void _showExpiredDialog() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Access disabled'),
-        content: const Text(
-          'Your trial has expired. Please contact me to continue or unlock the full app.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-          // optionally open payment/contact link
-        ],
-      ),
-    );
-  }
-
-  Future<void> _loadSettingsBadge() async {
-    final s = await _settingsSvc.fetchSettings();
-    if (s != null && mounted) setState(() => _currentPlan = s.plan);
   }
 
   Future<void> _loadSavedBusinesses() async {
@@ -96,6 +65,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // load saved favorites first
     await _loadSavedBusinesses();
+    // load plans and settings
+    await _loadPlans();
+    _settingsStream = _settingsSvc.watchSettings();
+    _settingsStream.listen((s) {
+      if (!mounted) return;
+      setState(() => _currency = (s?.currency ?? 'PHP'));
+    });
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -131,6 +107,15 @@ class _HomeScreenState extends State<HomeScreen> {
       // optional: print('Home init error: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadPlans() async {
+    try {
+      final plans = await _planService.fetchPlans();
+      if (mounted) setState(() => _plans = plans);
+    } catch (_) {
+      if (mounted) setState(() => _plans = []);
     }
   }
 
@@ -286,84 +271,59 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildPlanCard(Plan p) {
+    return InkWell(
+      onTap: () async {
+        final changed = await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => PlanDetailScreen(plan: p)),
+        );
+        if (changed == true) await _loadPlans();
+      },
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 2,
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                child: Text(
+                  p.title.isNotEmpty ? p.title[0].toUpperCase() : '?',
+                  style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(p.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
+                    Wrap(spacing: 6, children: [
+                      Chip(
+                        label: Text('Net: ${formatCurrency(p.monthlyNetProfit, _currency)}'),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ]),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.black26),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            tooltip: 'About',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AboutScreen()),
-            ),
-          ),
-          // Settings icon with small badge showing plan (T = trial, P = paid)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.settings),
-                  tooltip: 'Settings',
-                  onPressed: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                    );
-                    // refresh badge after returning
-                    _loadSettingsBadge();
-                  },
-                ),
-                if (_currentPlan.isNotEmpty)
-                  Positioned(
-                    right: 6,
-                    top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _currentPlan == 'paid'
-                            ? Colors.green
-                            : Colors.orange,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        _currentPlan == 'paid' ? 'PRO' : 'TRI',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.school),
-            tooltip: 'Learning Hub',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const LearnListScreen()),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.list_alt),
-            tooltip: 'My Plans',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PlanListScreen()),
-            ),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Home')),
 
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -373,6 +333,35 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.only(top: 16, bottom: 32),
                 children: [
                   _buildQuizCard(),
+
+                  // MY PLANS section
+                  if (_plans.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('My Plans', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          TextButton(
+                            onPressed: () async {
+                              if (widget.onSelectTab != null) {
+                                widget.onSelectTab!(1);
+                              } else {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const PlanListScreen()),
+                                );
+                                await _loadPlans();
+                              }
+                            },
+                            child: const Text('See all'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ..._plans.take(3).map(_buildPlanCard),
+                    const SizedBox(height: 8),
+                  ],
 
                   // SAVED section (inserted here)
                   if (_savedBusinesses.isNotEmpty) ...[

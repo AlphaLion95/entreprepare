@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'home_screen.dart';
+import 'main_tabs_page.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,10 +27,13 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _goToHome() {
+  void _goToHome() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      MaterialPageRoute(builder: (_) => const MainTabsPage()),
     );
   }
 
