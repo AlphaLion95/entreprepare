@@ -61,3 +61,8 @@ build/
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 node_modules
+scripts/serviceAccountKey.json
+**/serviceAccount*.json
+firebase-debug.log
+firestore-debug.log
+firebase-data/
