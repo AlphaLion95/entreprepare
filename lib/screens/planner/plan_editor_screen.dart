@@ -48,10 +48,10 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
 
   void _applyPrefill() {
     if (widget.business != null) {
-  // Reset local working data so editor is a non-persistent template
-  _inventory = [];
-  _milestones = [];
-  _expenses = [];
+      // Reset local working data so editor is a non-persistent template
+      _inventory = [];
+      _milestones = [];
+      _expenses = [];
       _titleCtl.text = widget.business!.title;
       final tmpl = getTemplateForTitle(widget.business!.title);
       if (tmpl != null) {
@@ -97,7 +97,7 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
       estMonthlySales: int.tryParse(_salesCtl.text) ?? 0,
       inventory: _inventory,
       milestones: _milestones,
-  expenses: _expenses,
+      expenses: _expenses,
       createdAt: DateTime.now(),
     );
 
@@ -145,16 +145,22 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
           await _service.updatePlan(toUpdate);
           savedPlan = toUpdate;
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plan overwritten')));
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Plan overwritten')));
             if (editAfter) {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => PlanDetailScreen(plan: savedPlan!)),
+                MaterialPageRoute(
+                  builder: (_) => PlanDetailScreen(plan: savedPlan!),
+                ),
               );
             } else {
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (_) => const MainTabsPage(initialIndex: 1)),
+                MaterialPageRoute(
+                  builder: (_) => const MainTabsPage(initialIndex: 1),
+                ),
                 (route) => false,
               );
             }
@@ -179,16 +185,22 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
           createdAt: userPlan.createdAt,
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plan saved')));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Plan saved')));
           if (editAfter) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => PlanDetailScreen(plan: savedPlan!)),
+              MaterialPageRoute(
+                builder: (_) => PlanDetailScreen(plan: savedPlan!),
+              ),
             );
           } else {
             Navigator.pushAndRemoveUntil(
               context,
-              MaterialPageRoute(builder: (_) => const MainTabsPage(initialIndex: 1)),
+              MaterialPageRoute(
+                builder: (_) => const MainTabsPage(initialIndex: 1),
+              ),
               (route) => false,
             );
           }
@@ -419,9 +431,9 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
   }
 
   double get _monthlyOperatingExpenses =>
-    _expenses.fold<double>(0.0, (s, e) => s + e.monthlyCost);
+      _expenses.fold<double>(0.0, (s, e) => s + e.monthlyCost);
   double get _monthlyNetProfit =>
-    _monthlyRevenue - _monthlyCOGS - _monthlyOperatingExpenses;
+      _monthlyRevenue - _monthlyCOGS - _monthlyOperatingExpenses;
 
   @override
   void dispose() {
@@ -503,59 +515,118 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
               color: Theme.of(context).colorScheme.surfaceVariant,
               child: Padding(
                 padding: const EdgeInsets.all(14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: const [Icon(Icons.area_chart, size: 18), SizedBox(width: 8), Text('Projections', style: TextStyle(fontWeight: FontWeight.bold))]),
-                  const SizedBox(height: 10),
-                  Wrap(spacing: 8, runSpacing: 8, children: [
-                    Chip(label: Text('Revenue: ${"${""}${""}"}')), // placeholder to keep layout if any
-                    Chip(label: Text('COGS: ${_fmtCurrency(_monthlyCOGS)}')),
-                    Chip(label: Text('OpEx: ${_fmtCurrency(_monthlyOperatingExpenses)}')),
-                    Chip(label: Text('Net: ${_fmtCurrency(_monthlyNetProfit)}')),
-                  ]),
-                  const SizedBox(height: 10),
-                  const Text('• Revenue = price × sales', style: TextStyle(fontSize: 12, color: Colors.black54)),
-                  const Text('• COGS ≈ average unit cost × sales', style: TextStyle(fontSize: 12, color: Colors.black54)),
-                  const Text('• Net = revenue − COGS − operating expenses', style: TextStyle(fontSize: 12, color: Colors.black54)),
-                ]),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              color: Theme.of(context).colorScheme.surfaceVariant,
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    Row(children: const [Icon(Icons.flag_outlined, size: 18), SizedBox(width: 8), Text('Milestones', style: TextStyle(fontWeight: FontWeight.bold))]),
-                    TextButton.icon(onPressed: _addMilestone, icon: const Icon(Icons.add), label: const Text('Add')),
-                  ]),
-                  if (_milestones.isEmpty)
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('No milestones')),
-                  ..._milestones.asMap().entries.map((e) {
-                    final idx = e.key;
-                    final m = e.value;
-                    return ListTile(
-                      title: Text(m.title),
-                      leading: Checkbox(
-                        value: m.done,
-                        onChanged: (v) => setState(() => m.done = v ?? false),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            onPressed: () => _editMilestoneTitle(idx),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.area_chart, size: 18),
+                        SizedBox(width: 8),
+                        Text(
+                          'Projections',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        Chip(
+                          label: Text('Revenue: ${"${""}${""}"}'),
+                        ), // placeholder to keep layout if any
+                        Chip(
+                          label: Text('COGS: ${_fmtCurrency(_monthlyCOGS)}'),
+                        ),
+                        Chip(
+                          label: Text(
+                            'OpEx: ${_fmtCurrency(_monthlyOperatingExpenses)}',
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () => _removeMilestone(idx),
+                        ),
+                        Chip(
+                          label: Text(
+                            'Net: ${_fmtCurrency(_monthlyNetProfit)}',
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      '• Revenue = price × sales',
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                    const Text(
+                      '• COGS ≈ average unit cost × sales',
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                    const Text(
+                      '• Net = revenue − COGS − operating expenses',
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              color: Theme.of(context).colorScheme.surfaceVariant,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(Icons.flag_outlined, size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              'Milestones',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        TextButton.icon(
+                          onPressed: _addMilestone,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add'),
+                        ),
+                      ],
+                    ),
+                    if (_milestones.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Text('No milestones'),
                       ),
-                    );
-                  }).toList(),
-                ]),
+                    ..._milestones.asMap().entries.map((e) {
+                      final idx = e.key;
+                      final m = e.value;
+                      return ListTile(
+                        title: Text(m.title),
+                        leading: Checkbox(
+                          value: m.done,
+                          onChanged: (v) => setState(() => m.done = v ?? false),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () => _editMilestoneTitle(idx),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () => _removeMilestone(idx),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -563,26 +634,64 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
               color: Theme.of(context).colorScheme.surfaceVariant,
               child: Padding(
                 padding: const EdgeInsets.all(14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    Row(children: const [Icon(Icons.inventory_2_outlined, size: 18), SizedBox(width: 8), Text('Inventory', style: TextStyle(fontWeight: FontWeight.bold))]),
-                    TextButton.icon(onPressed: _addInventoryItem, icon: const Icon(Icons.add), label: const Text('Add')),
-                  ]),
-                  if (_inventory.isEmpty)
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('No inventory')),
-                  ..._inventory.asMap().entries.map((e) {
-                    final idx = e.key;
-                    final it = e.value;
-                    return ListTile(
-                      title: Text(it.name),
-                      subtitle: Text('Qty: ${it.qty} • Unit: ${_fmtCurrency(it.unitCost)}'),
-                      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                        IconButton(icon: const Icon(Icons.edit), onPressed: () async { await _editInventoryItem(idx); setState((){}); }),
-                        IconButton(icon: const Icon(Icons.delete), onPressed: () => setState(() { _inventory.removeAt(idx); })),
-                      ]),
-                    );
-                  }).toList(),
-                ]),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(Icons.inventory_2_outlined, size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              'Inventory',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        TextButton.icon(
+                          onPressed: _addInventoryItem,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add'),
+                        ),
+                      ],
+                    ),
+                    if (_inventory.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Text('No inventory'),
+                      ),
+                    ..._inventory.asMap().entries.map((e) {
+                      final idx = e.key;
+                      final it = e.value;
+                      return ListTile(
+                        title: Text(it.name),
+                        subtitle: Text(
+                          'Qty: ${it.qty} • Unit: ${_fmtCurrency(it.unitCost)}',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () async {
+                                await _editInventoryItem(idx);
+                                setState(() {});
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () => setState(() {
+                                _inventory.removeAt(idx);
+                              }),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -590,26 +699,61 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
               color: Theme.of(context).colorScheme.surfaceVariant,
               child: Padding(
                 padding: const EdgeInsets.all(14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    Row(children: const [Icon(Icons.receipt_long_outlined, size: 18), SizedBox(width: 8), Text('Operating expenses', style: TextStyle(fontWeight: FontWeight.bold))]),
-                    TextButton.icon(onPressed: _addExpenseItem, icon: const Icon(Icons.add), label: const Text('Add')),
-                  ]),
-                  if (_expenses.isEmpty)
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('No operating expenses')),
-                  ..._expenses.asMap().entries.map((e) {
-                    final idx = e.key;
-                    final ex = e.value;
-                    return ListTile(
-                      title: Text(ex.name),
-                      subtitle: Text('Monthly: ${_fmtCurrency(ex.monthlyCost)}'),
-                      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                        IconButton(icon: const Icon(Icons.edit), onPressed: () => _editExpenseItem(idx)),
-                        IconButton(icon: const Icon(Icons.delete), onPressed: () => setState(() { _expenses.removeAt(idx); })),
-                      ]),
-                    );
-                  }).toList(),
-                ]),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(Icons.receipt_long_outlined, size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              'Operating expenses',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        TextButton.icon(
+                          onPressed: _addExpenseItem,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add'),
+                        ),
+                      ],
+                    ),
+                    if (_expenses.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Text('No operating expenses'),
+                      ),
+                    ..._expenses.asMap().entries.map((e) {
+                      final idx = e.key;
+                      final ex = e.value;
+                      return ListTile(
+                        title: Text(ex.name),
+                        subtitle: Text(
+                          'Monthly: ${_fmtCurrency(ex.monthlyCost)}',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () => _editExpenseItem(idx),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () => setState(() {
+                                _expenses.removeAt(idx);
+                              }),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -638,20 +782,48 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Add operating expense'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: nameCtl, decoration: const InputDecoration(hintText: 'Expense name (e.g., Salary, Rent)')),
-          const SizedBox(height: 8),
-          TextField(controller: costCtl, decoration: const InputDecoration(hintText: 'Monthly cost'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
-        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtl,
+              decoration: const InputDecoration(
+                hintText: 'Expense name (e.g., Salary, Rent)',
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: costCtl,
+              decoration: const InputDecoration(hintText: 'Monthly cost'),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+            ),
+          ],
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Add')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Add'),
+          ),
         ],
       ),
     );
     if (ok == true && nameCtl.text.trim().isNotEmpty) {
       final cost = double.tryParse(costCtl.text.trim()) ?? 0.0;
-      setState(() => _expenses.add(ExpenseItem(id: const Uuid().v4(), name: nameCtl.text.trim(), monthlyCost: cost)));
+      setState(
+        () => _expenses.add(
+          ExpenseItem(
+            id: const Uuid().v4(),
+            name: nameCtl.text.trim(),
+            monthlyCost: cost,
+          ),
+        ),
+      );
     }
   }
 
@@ -663,20 +835,44 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Edit operating expense'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: nameCtl, decoration: const InputDecoration(hintText: 'Expense name')),
-          const SizedBox(height: 8),
-          TextField(controller: costCtl, decoration: const InputDecoration(hintText: 'Monthly cost'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
-        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtl,
+              decoration: const InputDecoration(hintText: 'Expense name'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: costCtl,
+              decoration: const InputDecoration(hintText: 'Monthly cost'),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+            ),
+          ],
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
     if (ok == true && nameCtl.text.trim().isNotEmpty) {
       final cost = double.tryParse(costCtl.text.trim()) ?? 0.0;
-      setState(() => _expenses[idx] = ExpenseItem(id: ex.id, name: nameCtl.text.trim(), monthlyCost: cost));
+      setState(
+        () => _expenses[idx] = ExpenseItem(
+          id: ex.id,
+          name: nameCtl.text.trim(),
+          monthlyCost: cost,
+        ),
+      );
     }
   }
 }

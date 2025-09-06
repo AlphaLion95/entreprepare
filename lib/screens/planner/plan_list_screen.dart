@@ -30,7 +30,7 @@ class _PlanListScreenState extends State<PlanListScreen> {
     _settingsStream = _settingsSvc.watchSettings();
     _settingsStream.listen((s) {
       if (!mounted) return;
-  setState(() => _currency = (s?.currency ?? 'PHP'));
+      setState(() => _currency = (s?.currency ?? 'PHP'));
     });
   }
 
@@ -54,7 +54,9 @@ class _PlanListScreenState extends State<PlanListScreen> {
 
   List<Plan> get _filtered {
     final q = _query.trim().toLowerCase();
-    var list = _plans.where((p) => q.isEmpty || p.title.toLowerCase().contains(q)).toList();
+    var list = _plans
+        .where((p) => q.isEmpty || p.title.toLowerCase().contains(q))
+        .toList();
     if (_sort == 'net') {
       list.sort((a, b) => b.monthlyNetProfit.compareTo(a.monthlyNetProfit));
     } else {
@@ -123,7 +125,12 @@ class _PlanListScreenState extends State<PlanListScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Center(child: Text('No plans yet', style: TextStyle(fontSize: 18, color: Colors.black54))),
+                  const Center(
+                    child: Text(
+                      'No plans yet',
+                      style: TextStyle(fontSize: 18, color: Colors.black54),
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Padding(
                     padding: const EdgeInsets.symmetric(
@@ -151,9 +158,17 @@ class _PlanListScreenState extends State<PlanListScreen> {
                           hintText: 'Search plans',
                           prefixIcon: const Icon(Icons.search),
                           filled: true,
-                          fillColor: Theme.of(context).colorScheme.surfaceVariant,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                          fillColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceVariant,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 0,
+                            horizontal: 12,
+                          ),
                         ),
                         onChanged: (v) => setState(() => _query = v),
                       ),
@@ -206,24 +221,37 @@ class _PlanListScreenState extends State<PlanListScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 6),
-                                    Wrap(spacing: 8, runSpacing: 4, children: [
-                                      Chip(
-                                        label: Text('${formatCurrency(netProfit, _currency)}/mo'),
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                      Chip(
-                                        label: Text('Revenue: ${formatCurrency(p.monthlyRevenue, _currency)}'),
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                      Chip(
-                                        label: Text('OpEx: ${formatCurrency(p.monthlyOperatingExpenses, _currency)}'),
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                      Text(
-                                        _fmtDate(p.createdAt),
-                                        style: const TextStyle(color: Colors.black54, fontSize: 13),
-                                      ),
-                                    ]),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 4,
+                                      children: [
+                                        Chip(
+                                          label: Text(
+                                            '${formatCurrency(netProfit, _currency)}/mo',
+                                          ),
+                                          visualDensity: VisualDensity.compact,
+                                        ),
+                                        Chip(
+                                          label: Text(
+                                            'Revenue: ${formatCurrency(p.monthlyRevenue, _currency)}',
+                                          ),
+                                          visualDensity: VisualDensity.compact,
+                                        ),
+                                        Chip(
+                                          label: Text(
+                                            'OpEx: ${formatCurrency(p.monthlyOperatingExpenses, _currency)}',
+                                          ),
+                                          visualDensity: VisualDensity.compact,
+                                        ),
+                                        Text(
+                                          _fmtDate(p.createdAt),
+                                          style: const TextStyle(
+                                            color: Colors.black54,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                     const SizedBox(height: 8),
                                     LinearProgressIndicator(
                                       value: progress,

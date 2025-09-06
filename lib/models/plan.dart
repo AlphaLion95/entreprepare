@@ -33,19 +33,23 @@ class ExpenseItem {
   final String name;
   final double monthlyCost;
 
-  ExpenseItem({required this.id, required this.name, required this.monthlyCost});
+  ExpenseItem({
+    required this.id,
+    required this.name,
+    required this.monthlyCost,
+  });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'name': name,
-        'monthlyCost': monthlyCost,
-      };
+    'id': id,
+    'name': name,
+    'monthlyCost': monthlyCost,
+  };
 
   factory ExpenseItem.fromMap(Map<String, dynamic> m) => ExpenseItem(
-        id: m['id'] ?? '',
-        name: (m['name'] ?? '').toString(),
-        monthlyCost: (m['monthlyCost'] ?? 0).toDouble(),
-      );
+    id: m['id'] ?? '',
+    name: (m['name'] ?? '').toString(),
+    monthlyCost: (m['monthlyCost'] ?? 0).toDouble(),
+  );
 }
 
 class Milestone {
@@ -85,7 +89,7 @@ class Plan {
     required this.estMonthlySales,
     this.inventory = const [],
     this.milestones = const [],
-  this.expenses = const [],
+    this.expenses = const [],
     required this.createdAt,
   });
 
@@ -102,7 +106,8 @@ class Plan {
   double get monthlyProfit => monthlyRevenue - monthlyCostOfGoods;
   double get monthlyOperatingExpenses =>
       expenses.fold<double>(0.0, (s, e) => s + e.monthlyCost);
-  double get monthlyNetProfit => monthlyRevenue - monthlyCostOfGoods - monthlyOperatingExpenses;
+  double get monthlyNetProfit =>
+      monthlyRevenue - monthlyCostOfGoods - monthlyOperatingExpenses;
 
   Map<String, dynamic> toMap() => {
     'businessId': businessId,
@@ -113,7 +118,7 @@ class Plan {
     'estMonthlySales': estMonthlySales,
     'inventory': inventory.map((i) => i.toMap()).toList(),
     'milestones': milestones.map((m) => m.toMap()).toList(),
-  'expenses': expenses.map((e) => e.toMap()).toList(),
+    'expenses': expenses.map((e) => e.toMap()).toList(),
     'createdAt': Timestamp.fromDate(createdAt),
   };
 
@@ -130,9 +135,9 @@ class Plan {
     milestones: (m['milestones'] as List<dynamic>? ?? [])
         .map((e) => Milestone.fromMap(Map<String, dynamic>.from(e)))
         .toList(),
-  expenses: (m['expenses'] as List<dynamic>? ?? [])
-    .map((e) => ExpenseItem.fromMap(Map<String, dynamic>.from(e)))
-    .toList(),
+    expenses: (m['expenses'] as List<dynamic>? ?? [])
+        .map((e) => ExpenseItem.fromMap(Map<String, dynamic>.from(e)))
+        .toList(),
     createdAt: m['createdAt'] is Timestamp
         ? (m['createdAt'] as Timestamp).toDate()
         : DateTime.now(),

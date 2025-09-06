@@ -290,10 +290,14 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.primary.withOpacity(0.12),
                 child: Text(
                   p.title.isNotEmpty ? p.title[0].toUpperCase() : '?',
-                  style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -301,14 +305,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(p.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text(
+                      p.title,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     const SizedBox(height: 6),
-                    Wrap(spacing: 6, children: [
-                      Chip(
-                        label: Text('Net: ${formatCurrency(p.monthlyNetProfit, _currency)}'),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ]),
+                    Wrap(
+                      spacing: 6,
+                      children: [
+                        Chip(
+                          label: Text(
+                            'Net: ${formatCurrency(p.monthlyNetProfit, _currency)}',
+                          ),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -337,11 +349,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   // MY PLANS section
                   if (_plans.isNotEmpty) ...[
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('My Plans', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const Text(
+                            'My Plans',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           TextButton(
                             onPressed: () async {
                               if (widget.onSelectTab != null) {
@@ -349,7 +370,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               } else {
                                 await Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (_) => const PlanListScreen()),
+                                  MaterialPageRoute(
+                                    builder: (_) => const PlanListScreen(),
+                                  ),
                                 );
                                 await _loadPlans();
                               }

@@ -20,6 +20,7 @@ dependencies:
   youtube_player_flutter: ^9.0.0
   uuid: ^4.0.0
   cloud_functions: 5.6.2
+  shared_preferences: ^2.3.2
 
   # Firebase
   firebase_core: ^3.6.0
@@ -36,10 +37,18 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutterfire_cli: ^0.2.7
+  flutter_launcher_icons: ^0.12.0
 
 
 flutter:
   uses-material-design: true
-
   assets:
     - assets/googlelogo.jpg
+    - assets/app_icon.png
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: assets/app_icon.png
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: assets/app_icon.png

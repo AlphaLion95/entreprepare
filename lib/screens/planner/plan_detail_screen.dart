@@ -29,9 +29,9 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
   void initState() {
     super.initState();
     _plan = widget.plan;
-  _capitalCtl.text = _plan.capitalEstimated.toStringAsFixed(0);
-  _priceCtl.text = _plan.pricePerUnit.toStringAsFixed(0);
-  _salesCtl.text = _plan.estMonthlySales.toString();
+    _capitalCtl.text = _plan.capitalEstimated.toStringAsFixed(0);
+    _priceCtl.text = _plan.pricePerUnit.toStringAsFixed(0);
+    _salesCtl.text = _plan.estMonthlySales.toString();
     _loadSettings();
     _settingsStream = _settingsSvc.watchSettings();
     _settingsStream.listen((s) {
@@ -54,7 +54,7 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
   }
 
   Future<void> _toggleMilestone(int idx, bool? v) async {
-  setState(() => _plan.milestones[idx].done = v ?? false);
+    setState(() => _plan.milestones[idx].done = v ?? false);
   }
 
   Future<void> _addMilestone() async {
@@ -80,9 +80,11 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
       ),
     );
     if (ok == true && ctl.text.trim().isNotEmpty) {
-  setState(() => _plan.milestones.add(
-    Milestone(id: const Uuid().v4(), title: ctl.text.trim()),
-      ));
+      setState(
+        () => _plan.milestones.add(
+          Milestone(id: const Uuid().v4(), title: ctl.text.trim()),
+        ),
+      );
     }
   }
 
@@ -104,7 +106,7 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
         ],
       ),
     );
-  if (confirm == true) setState(() => _plan.milestones.removeAt(idx));
+    if (confirm == true) setState(() => _plan.milestones.removeAt(idx));
   }
 
   Future<void> _editMilestoneTitle(int idx) async {
@@ -180,23 +182,51 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameCtl, decoration: const InputDecoration(hintText: 'Item name')),
+            TextField(
+              controller: nameCtl,
+              decoration: const InputDecoration(hintText: 'Item name'),
+            ),
             const SizedBox(height: 8),
-            TextField(controller: qtyCtl, decoration: const InputDecoration(hintText: 'Quantity'), keyboardType: TextInputType.number),
+            TextField(
+              controller: qtyCtl,
+              decoration: const InputDecoration(hintText: 'Quantity'),
+              keyboardType: TextInputType.number,
+            ),
             const SizedBox(height: 8),
-            TextField(controller: costCtl, decoration: const InputDecoration(hintText: 'Unit cost'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+            TextField(
+              controller: costCtl,
+              decoration: const InputDecoration(hintText: 'Unit cost'),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+            ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Add')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Add'),
+          ),
         ],
       ),
     );
     if (ok == true && nameCtl.text.trim().isNotEmpty) {
       final qty = int.tryParse(qtyCtl.text.trim()) ?? 1;
       final unitCost = double.tryParse(costCtl.text.trim()) ?? 0.0;
-      setState(() => _plan.inventory.add(PlanItem(id: const Uuid().v4(), name: nameCtl.text.trim(), qty: qty, unitCost: unitCost)));
+      setState(
+        () => _plan.inventory.add(
+          PlanItem(
+            id: const Uuid().v4(),
+            name: nameCtl.text.trim(),
+            qty: qty,
+            unitCost: unitCost,
+          ),
+        ),
+      );
     }
   }
 
@@ -209,23 +239,52 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Edit inventory item'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: nameCtl, decoration: const InputDecoration(hintText: 'Item name')),
-          const SizedBox(height: 8),
-          TextField(controller: qtyCtl, decoration: const InputDecoration(hintText: 'Quantity'), keyboardType: TextInputType.number),
-          const SizedBox(height: 8),
-          TextField(controller: costCtl, decoration: const InputDecoration(hintText: 'Unit cost'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
-        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtl,
+              decoration: const InputDecoration(hintText: 'Item name'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: qtyCtl,
+              decoration: const InputDecoration(hintText: 'Quantity'),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: costCtl,
+              decoration: const InputDecoration(hintText: 'Unit cost'),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+            ),
+          ],
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
     if (ok == true && nameCtl.text.trim().isNotEmpty) {
       final qty = int.tryParse(qtyCtl.text.trim()) ?? 1;
       final unitCost = double.tryParse(costCtl.text.trim()) ?? 0.0;
-      setState(() => _plan.inventory[idx] = PlanItem(id: item.id, name: nameCtl.text.trim(), qty: qty, unitCost: unitCost));
+      setState(
+        () => _plan.inventory[idx] = PlanItem(
+          id: item.id,
+          name: nameCtl.text.trim(),
+          qty: qty,
+          unitCost: unitCost,
+        ),
+      );
     }
   }
 
@@ -236,20 +295,48 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Add operating expense'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: nameCtl, decoration: const InputDecoration(hintText: 'Expense name (e.g., Salary, Rent)')),
-          const SizedBox(height: 8),
-          TextField(controller: costCtl, decoration: const InputDecoration(hintText: 'Monthly cost'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
-        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtl,
+              decoration: const InputDecoration(
+                hintText: 'Expense name (e.g., Salary, Rent)',
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: costCtl,
+              decoration: const InputDecoration(hintText: 'Monthly cost'),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+            ),
+          ],
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Add')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Add'),
+          ),
         ],
       ),
     );
     if (ok == true && nameCtl.text.trim().isNotEmpty) {
       final cost = double.tryParse(costCtl.text.trim()) ?? 0.0;
-      setState(() => _plan.expenses.add(ExpenseItem(id: const Uuid().v4(), name: nameCtl.text.trim(), monthlyCost: cost)));
+      setState(
+        () => _plan.expenses.add(
+          ExpenseItem(
+            id: const Uuid().v4(),
+            name: nameCtl.text.trim(),
+            monthlyCost: cost,
+          ),
+        ),
+      );
     }
   }
 
@@ -261,20 +348,44 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Edit operating expense'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: nameCtl, decoration: const InputDecoration(hintText: 'Expense name')),
-          const SizedBox(height: 8),
-          TextField(controller: costCtl, decoration: const InputDecoration(hintText: 'Monthly cost'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
-        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtl,
+              decoration: const InputDecoration(hintText: 'Expense name'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: costCtl,
+              decoration: const InputDecoration(hintText: 'Monthly cost'),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+            ),
+          ],
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
     if (ok == true && nameCtl.text.trim().isNotEmpty) {
       final cost = double.tryParse(costCtl.text.trim()) ?? 0.0;
-      setState(() => _plan.expenses[idx] = ExpenseItem(id: ex.id, name: nameCtl.text.trim(), monthlyCost: cost));
+      setState(
+        () => _plan.expenses[idx] = ExpenseItem(
+          id: ex.id,
+          name: nameCtl.text.trim(),
+          monthlyCost: cost,
+        ),
+      );
     }
   }
 
@@ -290,17 +401,19 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
         _plan.estMonthlySales == 0 &&
         _plan.inventory.isEmpty &&
         _plan.milestones.isEmpty;
-  String fmt(double v) => formatCurrency(v, _currency);
-  double monthlyRevenue = (double.tryParse(_priceCtl.text) ?? _plan.pricePerUnit) *
-    (double.tryParse(_salesCtl.text) ?? _plan.estMonthlySales.toDouble());
-  double avgUnitCost = _plan.inventory.isEmpty
-    ? 0.0
-    : _plan.inventory.map((i) => i.unitCost).fold(0.0, (a, b) => a + b) /
-      _plan.inventory.length;
-  double monthlyCOGS = avgUnitCost *
-    (double.tryParse(_salesCtl.text) ?? _plan.estMonthlySales.toDouble());
-  double monthlyOpEx = _plan.expenses.fold(0.0, (s, e) => s + e.monthlyCost);
-  double monthlyNet = monthlyRevenue - monthlyCOGS - monthlyOpEx;
+    String fmt(double v) => formatCurrency(v, _currency);
+    double monthlyRevenue =
+        (double.tryParse(_priceCtl.text) ?? _plan.pricePerUnit) *
+        (double.tryParse(_salesCtl.text) ?? _plan.estMonthlySales.toDouble());
+    double avgUnitCost = _plan.inventory.isEmpty
+        ? 0.0
+        : _plan.inventory.map((i) => i.unitCost).fold(0.0, (a, b) => a + b) /
+              _plan.inventory.length;
+    double monthlyCOGS =
+        avgUnitCost *
+        (double.tryParse(_salesCtl.text) ?? _plan.estMonthlySales.toDouble());
+    double monthlyOpEx = _plan.expenses.fold(0.0, (s, e) => s + e.monthlyCost);
+    double monthlyNet = monthlyRevenue - monthlyCOGS - monthlyOpEx;
     return Scaffold(
       appBar: AppBar(
         title: Text(_plan.title),
@@ -450,40 +563,63 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Plan details', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Plan details',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _capitalCtl,
-                    decoration: const InputDecoration(labelText: 'Estimated capital'),
+                    decoration: const InputDecoration(
+                      labelText: 'Estimated capital',
+                    ),
                     keyboardType: TextInputType.number,
                     onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 8),
-                  Row(children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _priceCtl,
-                        decoration: const InputDecoration(labelText: 'Price per unit'),
-                        keyboardType: TextInputType.number,
-                        onChanged: (_) => setState(() {}),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _priceCtl,
+                          decoration: const InputDecoration(
+                            labelText: 'Price per unit',
+                          ),
+                          keyboardType: TextInputType.number,
+                          onChanged: (_) => setState(() {}),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: _salesCtl,
-                        decoration: const InputDecoration(labelText: 'Est. monthly sales'),
-                        keyboardType: TextInputType.number,
-                        onChanged: (_) => setState(() {}),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _salesCtl,
+                          decoration: const InputDecoration(
+                            labelText: 'Est. monthly sales',
+                          ),
+                          keyboardType: TextInputType.number,
+                          onChanged: (_) => setState(() {}),
+                        ),
                       ),
-                    ),
-                  ]),
+                    ],
+                  ),
                   const SizedBox(height: 8),
-                  const Text('Hints:', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Hints:',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 4),
-                  const Text('• Revenue = price × sales', style: TextStyle(color: Colors.black54)),
-                  const Text('• COGS ≈ average unit cost × sales', style: TextStyle(color: Colors.black54)),
-                  const Text('• Net = revenue − COGS − operating expenses', style: TextStyle(color: Colors.black54)),
+                  const Text(
+                    '• Revenue = price × sales',
+                    style: TextStyle(color: Colors.black54),
+                  ),
+                  const Text(
+                    '• COGS ≈ average unit cost × sales',
+                    style: TextStyle(color: Colors.black54),
+                  ),
+                  const Text(
+                    '• Net = revenue − COGS − operating expenses',
+                    style: TextStyle(color: Colors.black54),
+                  ),
                 ],
               ),
             ),
@@ -493,26 +629,55 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(12),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  const Text('Inventory', style: TextStyle(fontWeight: FontWeight.bold)),
-                  TextButton.icon(onPressed: _addInventoryItem, icon: const Icon(Icons.add), label: const Text('Add')),
-                ]),
-                if (_plan.inventory.isEmpty)
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('No inventory')),
-                ..._plan.inventory.asMap().entries.map((e) {
-                  final idx = e.key;
-                  final it = e.value;
-                  return ListTile(
-                    title: Text(it.name),
-                    subtitle: Text('Qty: ${it.qty} • Unit: ${fmt(it.unitCost)}'),
-                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                      IconButton(icon: const Icon(Icons.edit), onPressed: () => _editInventoryItem(idx)),
-                      IconButton(icon: const Icon(Icons.delete), onPressed: () => setState(() { _plan.inventory.removeAt(idx); })),
-                    ]),
-                  );
-                }).toList(),
-              ]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Inventory',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextButton.icon(
+                        onPressed: _addInventoryItem,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add'),
+                      ),
+                    ],
+                  ),
+                  if (_plan.inventory.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text('No inventory'),
+                    ),
+                  ..._plan.inventory.asMap().entries.map((e) {
+                    final idx = e.key;
+                    final it = e.value;
+                    return ListTile(
+                      title: Text(it.name),
+                      subtitle: Text(
+                        'Qty: ${it.qty} • Unit: ${fmt(it.unitCost)}',
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _editInventoryItem(idx),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => setState(() {
+                              _plan.inventory.removeAt(idx);
+                            }),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -520,26 +685,53 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(12),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  const Text('Operating expenses', style: TextStyle(fontWeight: FontWeight.bold)),
-                  TextButton.icon(onPressed: _addExpenseItem, icon: const Icon(Icons.add), label: const Text('Add')),
-                ]),
-                if (_plan.expenses.isEmpty)
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('No operating expenses')),
-                ..._plan.expenses.asMap().entries.map((e) {
-                  final idx = e.key;
-                  final ex = e.value;
-                  return ListTile(
-                    title: Text(ex.name),
-                    subtitle: Text('Monthly: ${fmt(ex.monthlyCost)}'),
-                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                      IconButton(icon: const Icon(Icons.edit), onPressed: () => _editExpenseItem(idx)),
-                      IconButton(icon: const Icon(Icons.delete), onPressed: () => setState(() { _plan.expenses.removeAt(idx); })),
-                    ]),
-                  );
-                }).toList(),
-              ]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Operating expenses',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextButton.icon(
+                        onPressed: _addExpenseItem,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add'),
+                      ),
+                    ],
+                  ),
+                  if (_plan.expenses.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text('No operating expenses'),
+                    ),
+                  ..._plan.expenses.asMap().entries.map((e) {
+                    final idx = e.key;
+                    final ex = e.value;
+                    return ListTile(
+                      title: Text(ex.name),
+                      subtitle: Text('Monthly: ${fmt(ex.monthlyCost)}'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _editExpenseItem(idx),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => setState(() {
+                              _plan.expenses.removeAt(idx);
+                            }),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -605,7 +797,9 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
             onPressed: _plan.milestones.isEmpty
                 ? null
                 : () async {
-                    setState(() => _plan.milestones.forEach((m) => m.done = true));
+                    setState(
+                      () => _plan.milestones.forEach((m) => m.done = true),
+                    );
                   },
           ),
           const SizedBox(height: 16),

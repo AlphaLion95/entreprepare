@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
@@ -32,15 +32,21 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  Timer? _tokenCheckTimer;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Periodically ensure revoked/disabled tokens sign the user out
+    _tokenCheckTimer = Timer.periodic(const Duration(minutes: 2), (_) {
+      checkTokenAndSignOutIfRevoked();
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _tokenCheckTimer?.cancel();
     super.dispose();
   }
 
@@ -50,14 +56,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       // check tokens on resume to force sign-out if revoked
       checkTokenAndSignOutIfRevoked();
     }
-  }
-
-  Future<Widget> _getInitialScreen() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return const LoginScreen();
-
-    // Always land on the main tabs; users can start the Lifestyle Quiz from Home
-    return const MainTabsPage();
   }
 
   @override
@@ -100,25 +98,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           ),
         ),
       ),
-      home: FutureBuilder<Widget>(
-        future: _getInitialScreen(),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
+          // While connecting to the auth stream, show a splash loader
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          if (snapshot.hasError) {
-            return Scaffold(
-              body: Center(
-                child: Text(
-                  'Error loading app: ${snapshot.error}',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            );
-          }
-          return snapshot.data!;
+          final user = snapshot.data;
+          if (user == null) return const LoginScreen();
+          return const MainTabsPage();
         },
       ),
     );
