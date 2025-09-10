@@ -8,6 +8,7 @@ import '../../utils/currency_utils.dart';
 import '../../utils/plan_templates.dart';
 import '../main_tabs_page.dart';
 import 'plan_detail_screen.dart';
+import '../../services/ai_milestone_service.dart';
 
 class PlanEditorScreen extends StatefulWidget {
   final Business? business;
@@ -29,6 +30,7 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
 
   List<PlanItem> _inventory = [];
   List<Milestone> _milestones = [];
+  final AiMilestoneService _aiMilestoneService = AiMilestoneService();
   List<ExpenseItem> _expenses = [];
   String _currency = 'PHP';
   late final Stream<Settings?> _settingsStream;
@@ -207,10 +209,11 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
         }
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -512,7 +515,7 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
             ),
             const SizedBox(height: 12),
             Card(
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: Column(
@@ -570,7 +573,7 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
             ),
             const SizedBox(height: 12),
             Card(
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: Column(
@@ -614,6 +617,91 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
+                              tooltip: 'AI help',
+                              icon: const Icon(Icons.lightbulb_outline),
+                              onPressed: () {
+                                final suggestion = _aiMilestoneService.generate(m.title);
+                                showModalBottomSheet(
+                                  context: context,
+                                  showDragHandle: true,
+                                  isScrollControlled: true,
+                                  builder: (_) => Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                                      left: 16,
+                                      right: 16,
+                                      top: 8,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          m.title,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(suggestion.definition),
+                                        const SizedBox(height: 12),
+                                        const Text(
+                                          'Suggested steps:',
+                                          style: TextStyle(fontWeight: FontWeight.w600),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        ...suggestion.steps.asMap().entries.map(
+                                          (st) => ListTile(
+                                            dense: true,
+                                            contentPadding: EdgeInsets.zero,
+                                            leading: CircleAvatar(
+                                              radius: 10,
+                                              child: Text(
+                                                '${st.key + 1}',
+                                                style: const TextStyle(fontSize: 11),
+                                              ),
+                                            ),
+                                            title: Text(st.value),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            TextButton.icon(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                                setState(() {
+                                                  // Append steps as new milestones after current
+                                                  final insertAt = idx + 1;
+                                                  _milestones.insertAll(
+                                                    insertAt,
+                                                    suggestion.steps.map(
+                                                      (s) => Milestone(
+                                                        id: const Uuid().v4(),
+                                                        title: s,
+                                                      ),
+                                                    ),
+                                                  );
+                                                });
+                                              },
+                                              icon: const Icon(Icons.add_task),
+                                              label: const Text('Add steps as milestones'),
+                                            ),
+                                            const Spacer(),
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context),
+                                              child: const Text('Close'),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            IconButton(
                               icon: const Icon(Icons.edit),
                               onPressed: () => _editMilestoneTitle(idx),
                             ),
@@ -624,14 +712,14 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
                           ],
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 12),
             Card(
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: Column(
@@ -689,14 +777,14 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
                           ],
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 12),
             Card(
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: Column(
@@ -751,7 +839,7 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
                           ],
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               ),
