@@ -7,6 +7,7 @@ class LocalStore {
   static const _quizCompletedKey = 'offline_quiz_completed_v1';
   static const _settingsKey = 'offline_settings_v1';
   static const _favoritesKey = 'offline_favorites_v1';
+  static const _aiIdeaCacheKey = 'offline_ai_idea_cache_v1';
 
   static Future<SharedPreferences> get _p async => SharedPreferences.getInstance();
 
@@ -78,5 +79,22 @@ class LocalStore {
   static Future<void> saveFavorites(List<String> favs) async {
     final prefs = await _p;
     await prefs.setString(_favoritesKey, jsonEncode(favs));
+  }
+
+  // AI idea cache (query -> list of suggestions)
+  static Future<Map<String, dynamic>> loadAiIdeaCache() async {
+    final prefs = await _p;
+    final raw = prefs.getString(_aiIdeaCacheKey);
+    if (raw == null) return {};
+    final decoded = jsonDecode(raw);
+    if (decoded is Map) {
+      return Map<String, dynamic>.from(decoded);
+    }
+    return {};
+  }
+
+  static Future<void> saveAiIdeaCache(Map<String, dynamic> cache) async {
+    final prefs = await _p;
+    await prefs.setString(_aiIdeaCacheKey, jsonEncode(cache));
   }
 }

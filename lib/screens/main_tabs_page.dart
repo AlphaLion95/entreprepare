@@ -4,6 +4,8 @@ import 'planner/plan_list_screen.dart';
 import 'settings_screen.dart';
 import 'about_screen.dart';
 import 'learn/learn_list_screen.dart';
+import '../config/ai_config.dart';
+import 'ai/ai_idea_screen.dart';
 
 class MainTabsPage extends StatefulWidget {
   final int initialIndex;
@@ -19,6 +21,7 @@ class _MainTabsPageState extends State<MainTabsPage> {
   late final List<Widget> _pages = [
     HomeScreen(onSelectTab: (i) => _onItemTapped(i)),
     const PlanListScreen(),
+    if (kAiIdeasEnabled) const AiIdeaScreen(),
     const SettingsScreen(),
     const AboutScreen(),
     const LearnListScreen(),
@@ -35,28 +38,34 @@ class _MainTabsPageState extends State<MainTabsPage> {
         onDestinationSelected: _onItemTapped,
         // colors come from NavigationBarTheme in ThemeData
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home_rounded),
             label: 'Home',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.event_note_outlined),
             selectedIcon: Icon(Icons.event_note_rounded),
             label: 'Plans',
           ),
-          NavigationDestination(
+          if (kAiIdeasEnabled)
+            const NavigationDestination(
+              icon: Icon(Icons.lightbulb_outline),
+              selectedIcon: Icon(Icons.lightbulb),
+              label: 'AI Ideas',
+            ),
+          const NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings_rounded),
             label: 'Settings',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.info_outline),
             selectedIcon: Icon(Icons.info_rounded),
             label: 'About',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.school_outlined),
             selectedIcon: Icon(Icons.school_rounded),
             label: 'Learn',
