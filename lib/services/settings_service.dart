@@ -1,6 +1,8 @@
 // Create file: c:\flutter_projects\entreprepare\lib\services\settings_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../config/auth_toggle.dart';
+import 'local_store.dart';
 
 class Settings {
   String currency; // e.g. "USD", "PHP", "EUR"
@@ -36,6 +38,10 @@ class SettingsService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Future<Settings?> fetchSettings() async {
+    if (kAuthDisabled) {
+      final m = await LocalStore.loadSettings();
+      return m == null ? null : Settings.fromMap(m);
+    }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
     final doc = await _db
@@ -49,6 +55,10 @@ class SettingsService {
   }
 
   Future<void> saveSettings(Settings s) async {
+    if (kAuthDisabled) {
+      await LocalStore.saveSettings(s.toMap());
+      return;
+    }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('Not signed in');
     await _db
@@ -60,9 +70,11 @@ class SettingsService {
   }
 
   Stream<Settings?> watchSettings() {
+    if (kAuthDisabled) {
+      return Stream.fromFuture(fetchSettings());
+    }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      // Return a stream that emits null once
       return Stream.value(null);
     }
     return _db

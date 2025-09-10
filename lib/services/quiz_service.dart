@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../config/auth_toggle.dart';
+import 'local_store.dart';
 import '../models/quiz_question.dart';
 import 'business_service.dart';
 import '../models/business.dart';
@@ -70,9 +72,13 @@ class QuizService {
 
   // Save answers under users/{uid}.quizAnswers
   Future<void> saveAnswers(Map<String, dynamic> answers) async {
+    if (kAuthDisabled) {
+      await LocalStore.saveQuizAnswers(answers);
+      await LocalStore.saveQuizCompleted(true);
+      return;
+    }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('User not logged in');
-
     final docRef = _firestore.collection('users').doc(user.uid);
     await docRef.set({
       'quizAnswers': answers,

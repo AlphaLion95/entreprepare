@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_tabs_page.dart';
+import 'config/auth_toggle.dart';
 
 Future<void> checkTokenAndSignOutIfRevoked() async {
   final user = FirebaseAuth.instance.currentUser;
@@ -20,7 +21,9 @@ Future<void> checkTokenAndSignOutIfRevoked() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await checkTokenAndSignOutIfRevoked();
+  if (!kAuthDisabled) {
+    await checkTokenAndSignOutIfRevoked();
+  }
   runApp(const MyApp());
 }
 
@@ -37,10 +40,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Periodically ensure revoked/disabled tokens sign the user out
-    _tokenCheckTimer = Timer.periodic(const Duration(minutes: 2), (_) {
-      checkTokenAndSignOutIfRevoked();
-    });
+    if (!kAuthDisabled) {
+      _tokenCheckTimer = Timer.periodic(const Duration(minutes: 2), (_) {
+        checkTokenAndSignOutIfRevoked();
+      });
+    }
   }
 
   @override
@@ -52,8 +56,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      // check tokens on resume to force sign-out if revoked
+    if (!kAuthDisabled && state == AppLifecycleState.resumed) {
       checkTokenAndSignOutIfRevoked();
     }
   }
@@ -98,20 +101,22 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           ),
         ),
       ),
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          // While connecting to the auth stream, show a splash loader
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-          final user = snapshot.data;
-          if (user == null) return const LoginScreen();
-          return const MainTabsPage();
-        },
-      ),
+      // If auth is disabled, skip the StreamBuilder entirely.
+      home: kAuthDisabled
+          ? const MainTabsPage()
+          : StreamBuilder<User?>(
+              stream: FirebaseAuth.instance.authStateChanges(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final user = snapshot.data;
+                if (user == null) return const LoginScreen();
+                return const MainTabsPage();
+              },
+            ),
     );
   }
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/business_service.dart';
+import '../config/auth_toggle.dart';
+import '../services/local_store.dart';
 import '../models/business.dart';
 import '../screens/quiz/quiz_screen.dart';
 import 'business/business_detail_screen.dart';
@@ -30,18 +33,34 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Business> _savedBusinesses = [];
   List<Plan> _plans = [];
   String _currency = 'PHP';
-  late final Stream<ss.Settings?> _settingsStream;
+  StreamSubscription<ss.Settings?>? _settingsSub;
 
   @override
   void initState() {
     super.initState();
+    // Listen to settings once; avoid re-registering on pull-to-refresh
+    _settingsSub = _settingsSvc.watchSettings().listen((s) {
+      if (!mounted) return;
+      setState(() => _currency = (s?.currency ?? 'PHP'));
+    });
     _initializeHome();
   }
 
+  @override
+  void dispose() {
+    _settingsSub?.cancel();
+    super.dispose();
+  }
+
   Future<void> _loadSavedBusinesses() async {
+    if (kAuthDisabled) {
+      final saved = await _businessService.loadOfflineFavorites();
+      if (mounted) setState(() => _savedBusinesses = saved);
+      return;
+    }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      setState(() => _savedBusinesses = []);
+      if (mounted) setState(() => _savedBusinesses = []);
       return;
     }
     try {
@@ -60,53 +79,63 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _initializeHome() async {
-    setState(() => _loading = true);
+  Future<void> _initializeHome({bool showSpinner = true}) async {
+    if (showSpinner) {
+      setState(() => _loading = true);
+    }
 
-    // load saved favorites first
+  // load saved favorites first
     await _loadSavedBusinesses();
     // load plans and settings
     await _loadPlans();
-    _settingsStream = _settingsSvc.watchSettings();
-    _settingsStream.listen((s) {
-      if (!mounted) return;
-      setState(() => _currency = (s?.currency ?? 'PHP'));
-    });
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      if (mounted) setState(() => _loading = false);
+    if (kAuthDisabled) {
+      try {
+        final quizCompleted = await LocalStore.loadQuizCompleted();
+        Map<String, dynamic> answers = {};
+        if (quizCompleted) {
+          answers = await LocalStore.loadQuizAnswers();
+          final topBusinesses = await _businessService.getTop3(answers, topN: 3);
+          if (mounted) {
+            setState(() {
+              _quizCompleted = quizCompleted;
+              _topBusinesses = topBusinesses;
+            });
+          }
+        } else {
+          if (mounted) setState(() => _quizCompleted = false);
+        }
+      } catch (_) {}
+  if (showSpinner && mounted) setState(() => _loading = false);
       return;
     }
-
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+  if (showSpinner && mounted) setState(() => _loading = false);
+      return;
+    }
     try {
-      final quizCompleted = await _businessService.fetchUserQuizStatus(
-        user.uid,
-      );
+      final quizCompleted = await _businessService.fetchUserQuizStatus(user.uid);
       Map<String, dynamic> answers = {};
       List<Business> topBusinesses = [];
-
       if (quizCompleted) {
         final userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
             .get();
-        answers =
-            (userDoc.data()?['quizAnswers'] ?? {}) as Map<String, dynamic>;
-        // safe fetch of top businesses; getTop3 should handle timeouts/fallbacks
+        answers = (userDoc.data()?['quizAnswers'] ?? {}) as Map<String, dynamic>;
         topBusinesses = await _businessService.getTop3(answers, topN: 3);
       }
-
       if (mounted) {
         setState(() {
           _quizCompleted = quizCompleted;
           _topBusinesses = topBusinesses;
         });
       }
-    } catch (e) {
-      // optional: print('Home init error: $e');
+    } catch (_) {
+      // ignore
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (showSpinner && mounted) setState(() => _loading = false);
     }
   }
 
@@ -339,8 +368,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _initializeHome,
+      : RefreshIndicator(
+        onRefresh: () => _initializeHome(showSpinner: false),
               child: ListView(
                 padding: const EdgeInsets.only(top: 16, bottom: 32),
                 children: [
