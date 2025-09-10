@@ -1,7 +1,21 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../config/ai_config.dart';
+
 class MilestoneSuggestion {
   final String definition;
   final List<String> steps;
   MilestoneSuggestion({required this.definition, required this.steps});
+
+  factory MilestoneSuggestion.fromMap(Map<String, dynamic> m) =>
+      MilestoneSuggestion(
+        definition: (m['definition'] ?? '').toString(),
+        steps: (m['steps'] as List<dynamic>? ?? []).map((e) => e.toString()).toList(),
+      );
+  Map<String, dynamic> toMap() => {
+        'definition': definition,
+        'steps': steps,
+      };
 }
 
 class AiMilestoneService {
@@ -75,8 +89,29 @@ class AiMilestoneService {
     ),
   ];
 
-  MilestoneSuggestion generate(String title) {
+  Future<MilestoneSuggestion> generate(String title) async {
     final t = title.toLowerCase();
+    if (kAiRemoteEnabled && kAiMilestoneEndpoint.isNotEmpty) {
+      try {
+        final resp = await http
+            .post(
+              Uri.parse(kAiMilestoneEndpoint),
+              headers: {
+                'Content-Type': 'application/json',
+                if (kAiApiKey.isNotEmpty) 'Authorization': 'Bearer $kAiApiKey',
+              },
+              body: jsonEncode({'title': title}),
+            )
+            .timeout(const Duration(seconds: 15));
+        if (resp.statusCode == 200) {
+          final data = jsonDecode(resp.body);
+          if (data is Map && data['definition'] != null) {
+            return MilestoneSuggestion.fromMap(Map<String, dynamic>.from(data));
+          }
+        }
+      } catch (_) {}
+    }
+    // fallback heuristic
     final matched = _patterns.firstWhere(
       (p) => p.keywords.any((k) => t.contains(k) || k.contains(t)),
       orElse: () => _patterns.first,

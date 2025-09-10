@@ -1,5 +1,8 @@
 import 'dart:math';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../services/local_store.dart';
+import '../config/ai_config.dart';
 
 class ProblemSolutionSuggestion {
   final String title;
@@ -128,7 +131,44 @@ class AiSolutionService {
       return list;
     }
 
-    // Score patterns by keyword match count
+    // Try remote if configured
+    if (kAiRemoteEnabled && kAiSolutionsEndpoint.isNotEmpty) {
+      try {
+        final resp = await http
+            .post(
+              Uri.parse(kAiSolutionsEndpoint),
+              headers: {
+                'Content-Type': 'application/json',
+                if (kAiApiKey.isNotEmpty) 'Authorization': 'Bearer $kAiApiKey',
+              },
+              body: jsonEncode({
+                'activity': act,
+                'problem': prob,
+                'goal': goal.trim(),
+                'limit': 3,
+              }),
+            )
+            .timeout(const Duration(seconds: 18));
+        if (resp.statusCode == 200) {
+          final data = jsonDecode(resp.body);
+          if (data is Map && data['solutions'] is List) {
+            final list = (data['solutions'] as List)
+                .map((e) => ProblemSolutionSuggestion.fromMap(
+                    Map<String, dynamic>.from(e as Map)))
+                .toList();
+            if (list.isNotEmpty) {
+              cache[key] = list.map((s) => s.toMap()).toList();
+              await LocalStore.saveProblemSolutionCache(cache);
+              return list;
+            }
+          }
+        }
+      } catch (_) {
+        // silently fallback
+      }
+    }
+
+    // Score patterns by keyword match count (heuristic fallback)
     final scored = <_Pattern, int>{};
     for (final p in _patterns) {
       var score = 0;

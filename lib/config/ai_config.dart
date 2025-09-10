@@ -7,5 +7,14 @@ const bool kAiIdeasEnabled = true; // flip to false to hide AI tab
 // Leave empty to use local heuristic suggestions only.
 const String kAiIdeasEndpoint = '';
 
+// Remote problem solution endpoint (Cloud Function or backend) returning JSON { ideas: [], solutions: [], error? }
+const String kAiSolutionsEndpoint = '';
+
+// Remote milestone assist endpoint returning { definition: string, steps: [] }
+const String kAiMilestoneEndpoint = '';
+
+// Global toggle: if true and endpoint strings not empty, remote call attempted
+const bool kAiRemoteEnabled = false;
+
 // Optional API key constant placeholder (avoid committing real keys)
 const String kAiApiKey = '';

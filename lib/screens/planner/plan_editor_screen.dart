@@ -619,8 +619,9 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
                             IconButton(
                               tooltip: 'AI help',
                               icon: const Icon(Icons.lightbulb_outline),
-                              onPressed: () {
-                                final suggestion = _aiMilestoneService.generate(m.title);
+                              onPressed: () async {
+                                final suggestion = await _aiMilestoneService.generate(m.title);
+                                if (!mounted) return;
                                 showModalBottomSheet(
                                   context: context,
                                   showDragHandle: true,
