@@ -38,17 +38,19 @@ class _PlanListScreenState extends State<PlanListScreen> {
     setState(() => _loading = true);
     try {
       final plans = await _service.fetchPlans();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _plans = plans;
           _loading = false;
         });
+      }
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _plans = [];
           _loading = false;
         });
+      }
     }
   }
 
@@ -160,7 +162,7 @@ class _PlanListScreenState extends State<PlanListScreen> {
                           filled: true,
                           fillColor: Theme.of(
                             context,
-                          ).colorScheme.surfaceVariant,
+                          ).colorScheme.surfaceContainerHighest,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,

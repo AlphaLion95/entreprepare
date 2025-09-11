@@ -1,6 +1,8 @@
 // lib/services/business_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import '../config/auth_toggle.dart';
+import 'local_store.dart';
 import '../models/business.dart';
 import '../models/quiz_question.dart';
 
@@ -413,6 +415,9 @@ class BusinessService {
   }
 
   Future<bool> fetchUserQuizStatus(String uid) async {
+    if (kAuthDisabled) {
+      return await LocalStore.loadQuizCompleted();
+    }
     try {
       final doc = await firestore.collection('users').doc(uid).get();
       return doc.data()?['quizCompleted'] ?? false;
@@ -429,6 +434,29 @@ class BusinessService {
       batch.set(docRef, m);
     }
     await batch.commit();
+  }
+
+  // Offline favorites management (stores titles for simplicity)
+  Future<List<Business>> loadOfflineFavorites() async {
+    final favTitles = await LocalStore.loadFavorites();
+    if (favTitles.isEmpty) return [];
+    final all = _localBusinesses();
+    return all.where((b) => favTitles.contains(b.title)).toList();
+  }
+
+  Future<void> toggleFavoriteOffline(Business b) async {
+    final favTitles = await LocalStore.loadFavorites();
+    if (favTitles.contains(b.title)) {
+      favTitles.remove(b.title);
+    } else {
+      favTitles.add(b.title);
+    }
+    await LocalStore.saveFavorites(favTitles);
+  }
+
+  Future<bool> isFavoriteOffline(Business b) async {
+    final favTitles = await LocalStore.loadFavorites();
+    return favTitles.contains(b.title);
   }
 }
 

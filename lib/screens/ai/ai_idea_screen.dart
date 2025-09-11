@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import '../../config/ai_config.dart';
 import '../../services/ai_idea_service.dart';
 import '../../services/ai_solution_service.dart';
 import '../../services/plan_service.dart';
 import '../../models/plan.dart';
-import 'package:uuid/uuid.dart';
 
 class AiIdeaScreen extends StatefulWidget {
   const AiIdeaScreen({super.key});
@@ -21,19 +21,31 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
 
   late final TabController _tab;
 
-  // Idea tab
+  // Ideas
   final _queryCtl = TextEditingController();
   bool _loadingIdeas = false;
   List<String> _ideas = [];
   String _ideaError = '';
 
-  // Problem solver tab
-  final _activityCtl = TextEditingController();
-  final _problemCtl = TextEditingController();
-  final _goalCtl = TextEditingController();
+  // Problem solver unified context
+  final _contextCtl = TextEditingController();
   bool _loadingSolutions = false;
   List<ProblemSolutionSuggestion> _solutions = [];
   String _solutionError = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _tab = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tab.dispose();
+    _queryCtl.dispose();
+    _contextCtl.dispose();
+    super.dispose();
+  }
 
   Future<void> _runIdeas() async {
     final q = _queryCtl.text.trim();
@@ -46,37 +58,42 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
       final results = await _ideaService.getIdeas(q);
       if (mounted) setState(() => _ideas = results);
     } catch (e) {
-      if (mounted) setState(() => _ideaError = 'Failed: $e');
+      if (!mounted) return;
+      final msg = e.toString();
+      String friendly = 'Failed: $msg';
+      if (msg.contains('Remote AI disabled')) {
+        friendly = 'AI disabled. Set your deployed function URLs in ai_config.dart (kAiIdeasEndpoint, enable kAiRemoteEnabled) then rebuild.';
+      }
+      setState(() => _ideaError = friendly);
     } finally {
       if (mounted) setState(() => _loadingIdeas = false);
     }
   }
 
   Future<void> _runSolutions() async {
-    final act = _activityCtl.text.trim();
-    final prob = _problemCtl.text.trim();
-    final goal = _goalCtl.text.trim();
-    if (act.isEmpty || prob.isEmpty) return;
+    final ctx = _contextCtl.text.trim();
+    if (ctx.isEmpty) return;
     setState(() {
       _loadingSolutions = true;
       _solutionError = '';
     });
     try {
-      final res = await _solutionService.generateSolutions(
-        activity: act,
-        problem: prob,
-        goal: goal,
-      );
+      final res = await _solutionService.generateFromContext(ctx);
       if (mounted) setState(() => _solutions = res);
     } catch (e) {
-      if (mounted) setState(() => _solutionError = 'Failed: $e');
+      if (!mounted) return;
+      final msg = e.toString();
+      String friendly = 'Failed: $msg';
+      if (msg.contains('Remote AI disabled')) {
+        friendly = 'AI disabled. Configure endpoints (kAiSolutionsEndpoint, kAiRemoteEnabled) and redeploy.';
+      }
+      setState(() => _solutionError = friendly);
     } finally {
       if (mounted) setState(() => _loadingSolutions = false);
     }
   }
 
   Future<void> _addSuggestionToPlan(ProblemSolutionSuggestion s) async {
-    // Build a simple plan with milestones from steps
     final plan = Plan(
       id: '',
       businessId: '',
@@ -105,44 +122,6 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _tab = TabController(length: 2, vsync: this);
-  }
-
-  void dispose() {
-    _queryCtl.dispose();
-    _activityCtl.dispose();
-    _problemCtl.dispose();
-    _goalCtl.dispose();
-    _tab.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Assistant'),
-        bottom: TabBar(
-          controller: _tab,
-            tabs: const [
-              Tab(icon: Icon(Icons.lightbulb_outline), text: 'Ideas'),
-              Tab(icon: Icon(Icons.build_circle_outlined), text: 'Problem Solver'),
-            ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tab,
-        children: [
-          _buildIdeasTab(),
-          _buildProblemSolverTab(),
-        ],
-      ),
-    );
-  }
-
   Widget _buildIdeasTab() {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -164,7 +143,7 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
             ),
           ),
           const SizedBox(height: 12),
-          if (_loadingIdeas) const LinearProgressIndicator(minHeight: 3),
+            if (_loadingIdeas) const LinearProgressIndicator(minHeight: 3),
           if (_ideaError.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 8),
@@ -217,58 +196,80 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextField(
-            controller: _activityCtl,
-            decoration: const InputDecoration(
-              labelText: 'Business activity (e.g. cafe, tutoring, retail)',
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _problemCtl,
-            maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'Problem causing decline (e.g. low foot traffic, inventory waste)',
-            ),
-          ),
-          const SizedBox(height: 12),
-            TextField(
-            controller: _goalCtl,
-            decoration: const InputDecoration(
-              labelText: 'Goal (optional, e.g. increase repeat customers 20%)',
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              ElevatedButton.icon(
-                onPressed: _loadingSolutions ? null : _runSolutions,
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Generate'),
+          Card(
+            elevation: 1,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Context', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 140,
+                    child: TextField(
+                      controller: _contextCtl,
+                      maxLines: null,
+                      expands: true,
+                      textAlignVertical: TextAlignVertical.top,
+                      decoration: const InputDecoration(
+                        hintText: 'Describe your business, current challenges, goals, metrics, users...\nYou can paste multiple paragraphs.',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _loadingSolutions ? null : _runSolutions,
+                          icon: const Icon(Icons.auto_awesome),
+                          label: const Text('Generate Strategies'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      IconButton(
+                        tooltip: 'Clear',
+                        onPressed: () {
+                          _contextCtl.clear();
+                          setState(() { _solutions.clear(); _solutionError=''; });
+                        },
+                        icon: const Icon(Icons.clear_all),
+                      )
+                    ],
+                  ),
+                  if (_loadingSolutions)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: LinearProgressIndicator(minHeight: 3),
+                    ),
+                  if (_solutionError.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(_solutionError, style: const TextStyle(color: Colors.red)),
+                    ),
+                  if (!_loadingSolutions && _solutions.isEmpty && _solutionError.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Enter rich context then tap Generate. Examples: traction issues, churn, acquisition goal, launch plan.',
+                        style: TextStyle(fontSize: 12, color: Colors.black54),
+                      ),
+                    ),
+                ],
               ),
-              const SizedBox(width: 12),
-              if (_loadingSolutions)
-                const Expanded(
-                  child: LinearProgressIndicator(minHeight: 4),
-                ),
-            ],
-          ),
-          if (_solutionError.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(_solutionError,
-                  style: const TextStyle(color: Colors.red)),
             ),
+          ),
           const SizedBox(height: 12),
           Expanded(
-            child: _solutions.isEmpty && !_loadingSolutions
-                ? const Center(
-                    child: Text(
-                      'Enter your business activity and a specific problem to get innovation suggestions.',
-                      textAlign: TextAlign.center,
-                    ),
-                  )
+            child: _solutions.isEmpty
+                ? const Center(child: Text('No strategies yet'))
                 : ListView.builder(
                     itemCount: _solutions.length,
                     itemBuilder: (c, i) {
@@ -276,50 +277,65 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ExpansionTile(
-                          leading: const Icon(Icons.lightbulb),
+                          leading: const Icon(Icons.lightbulb_outline),
                           title: Text(s.title),
                           subtitle: Text(s.rationale),
                           children: [
                             Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Steps:',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 6),
+                                  const SizedBox(height: 8),
                                   ...s.steps.asMap().entries.map((e) => ListTile(
                                         dense: true,
+                                        contentPadding: EdgeInsets.zero,
                                         leading: CircleAvatar(
-                                          radius: 10,
-                                          child: Text('${e.key + 1}',
-                                              style: const TextStyle(
-                                                  fontSize: 11)),
+                                          radius: 11,
+                                          child: Text('${e.key + 1}', style: const TextStyle(fontSize: 11)),
                                         ),
                                         title: Text(e.value),
                                       )),
-                                  const SizedBox(height: 8),
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: TextButton.icon(
                                       onPressed: () => _addSuggestionToPlan(s),
                                       icon: const Icon(Icons.add_task),
-                                      label: const Text('Add to Plans'),
+                                      label: const Text('Add to Plan'),
                                     ),
-                                  ),
+                                  )
                                 ],
                               ),
-                            ),
+                            )
                           ],
                         ),
                       );
                     },
                   ),
-          ),
+          )
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('AI Assist'),
+        bottom: TabBar(
+          controller: _tab,
+          tabs: const [
+            Tab(text: 'Ideas'),
+            Tab(text: 'Problem Solver'),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tab,
+        children: [
+          _buildIdeasTab(),
+          _buildProblemSolverTab(),
         ],
       ),
     );

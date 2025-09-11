@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../config/auth_toggle.dart';
 import '../../models/quiz_question.dart';
 import '../../services/quiz_service.dart';
 import '../../screens/quiz/result_screen.dart';
@@ -66,13 +67,15 @@ class _QuizScreenState extends State<QuizScreen> {
   Future<void> _submit() async {
     setState(() => _saving = true);
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Not logged in')));
-        setState(() => _saving = false);
-        return;
+      if (!kAuthDisabled) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Not logged in')),
+          );
+          setState(() => _saving = false);
+          return;
+        }
       }
 
       await _quizService.saveAnswers(_answers);

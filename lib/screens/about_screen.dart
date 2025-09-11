@@ -280,7 +280,7 @@ class _ContributorsWrap extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          backgroundColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+          backgroundColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
         );
       }).toList(),
     );

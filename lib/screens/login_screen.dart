@@ -75,10 +75,11 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       // non-fatal: log or show later
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('User doc sync failed: $e')));
+      }
     }
   }
 
@@ -112,10 +113,11 @@ class _LoginScreenState extends State<LoginScreen> {
         _goToHome();
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Sign in failed: $e")));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

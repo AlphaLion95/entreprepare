@@ -5,6 +5,38 @@ const fetch = require('node-fetch');
 admin.initializeApp();
 const db = admin.firestore();
 
+// Minimal OpenAI call helper (Chat Completions with JSON-style output enforcement)
+const OPENAI_KEY = process.env.OPENAI_KEY || process.env.openai_key || null;
+async function callOpenAIJson(prompt, schemaHint) {
+  if (!OPENAI_KEY) throw new Error('OpenAI key missing');
+  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  const system = `You are a strict JSON API. Output ONLY valid JSON. ${schemaHint}`;
+  const body = {
+    model,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: prompt }
+    ],
+    temperature: 0.65,
+    response_format: { type: 'json_object' }
+  };
+  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${OPENAI_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error('OpenAI HTTP ' + resp.status + ' ' + text);
+  }
+  const data = await resp.json();
+  const content = data.choices?.[0]?.message?.content || '{}';
+  return JSON.parse(content);
+}
+
 exports.activateLicense = functions.https.onCall(async (data, context) => {
   const key = data && data.key ? String(data.key).trim().toUpperCase() : null;
   if (!key) {
@@ -83,58 +115,49 @@ exports.activateLicense = functions.https.onCall(async (data, context) => {
   }
 });
 
+// === AI Ideas Generation (HTTP) ===
+// Request: { query, limit }
+// Response: { ideas: [string] }
+exports.aiIdeas = functions.https.onRequest(async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  const { query = '', limit = 8 } = req.body || {};
+  if (!query) return res.status(400).json({ error: 'Missing query' });
+  try {
+    const prompt = `Generate up to ${limit} concise, distinct startup or small business ideas related to: "${query}". Return JSON: {"ideas": [string...]}. Ideas should be 5-12 words, actionable, and avoid numbering.`;
+    const data = await callOpenAIJson(prompt, 'Schema: {"ideas":["idea 1","idea 2"]}');
+    let ideas = Array.isArray(data.ideas) ? data.ideas.map(String) : [];
+    if (!ideas.length) throw new Error('Empty ideas');
+    ideas = ideas.slice(0, limit);
+    return res.json({ ideas });
+  } catch (err) {
+    console.error('aiIdeas error', err);
+    return res.status(500).json({ error: 'AI failure' });
+  }
+});
+
 // === AI Solution Generation (HTTP) ===
-// Expected request JSON: { activity, problem, goal, limit }
+// Request: { activity, problem, goal, limit }
 // Response: { solutions: [ { title, rationale, steps[] } ] }
 exports.aiSolutions = functions.https.onRequest(async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
   const { activity = '', problem = '', goal = '', limit = 3 } = req.body || {};
   if (!activity || !problem) return res.status(400).json({ error: 'Missing fields' });
-
-  // Example OpenAI call (commented). Provide your own key via env config.
-  // const OPENAI_KEY = process.env.OPENAI_KEY;
-  // if (!OPENAI_KEY) return res.status(500).json({ error: 'Missing OpenAI key' });
-  // const prompt = `Business activity: ${activity}\nProblem: ${problem}\nGoal: ${goal}\nGenerate ${limit} actionable solution strategies as JSON array with title, rationale, steps.`;
-  // const aiResp = await fetch('https://api.openai.com/v1/chat/completions', { ... });
-  // Parse and map.
-
-  // Placeholder deterministic sample (replace with real model output)
-  const base = [
-    {
-      title: 'Targeted Niche Positioning',
-      rationale: 'Focus the software on a narrow pain point to increase perceived value and conversion.',
-      steps: [
-        'Interview 5 prospective users in a micro-niche.',
-        'Extract top workflow bottleneck repeated across interviews.',
-        'Refine feature set to solve only that bottleneck.',
-        'Revise landing page headline around outcome metric.',
-        'Launch micro beta and collect activation metrics.',
-      ],
-    },
-    {
-      title: 'Multi-Channel Distribution Test',
-      rationale: 'Identify profitable acquisition channels through small parallel experiments.',
-      steps: [
-        'Select 3 channels (communities, cold email, directory listing).',
-        'Craft channel-specific short pitch / value hook.',
-        'Run each for 7 days with consistent daily outreach quota.',
-        'Record leads, trials, conversions, CAC proxy.',
-        'Double down on best performing channel next cycle.',
-      ],
-    },
-    {
-      title: 'Monetization Validation Sprint',
-      rationale: 'Test pricing willingness early to avoid building non-revenue features.',
-      steps: [
-        'Design 2 pricing hypotheses (e.g., usage vs tiered).',
-        'Add simple upgrade/paywall touchpoint in app.',
-        'Run user calls to probe perceived ROI & objections.',
-        'Measure trial-to-upgrade intent signals.',
-        'Select model with higher clarity & proceed to implement billing.',
-      ],
-    },
-  ];
-  res.json({ solutions: base.slice(0, Math.min(limit, base.length)) });
+  try {
+    const prompt = `Activity: ${activity}\nProblem: ${problem}\nGoal: ${goal}\nGenerate ${limit} strategic solution approaches. Each must have: title (max 6 words), rationale (1 sentence), and 4-6 concrete execution steps. JSON schema: {"solutions":[{"title":"","rationale":"","steps":["",""]}]}`;
+    const data = await callOpenAIJson(prompt, 'Schema: {"solutions":[{"title":"t","rationale":"r","steps":["s"]}]}');
+    let solutions = Array.isArray(data.solutions) ? data.solutions : [];
+    solutions = solutions.filter(s => s && s.title && s.steps && Array.isArray(s.steps));
+    solutions = solutions.slice(0, limit).map(s => ({
+      title: String(s.title).trim(),
+      rationale: String(s.rationale || '').trim(),
+      steps: s.steps.map(x => String(x).trim()).filter(Boolean).slice(0, 8)
+    }));
+    if (!solutions.length) throw new Error('Empty solutions');
+    return res.json({ solutions });
+  } catch (err) {
+    console.error('aiSolutions error', err);
+    return res.status(500).json({ error: 'AI failure' });
+  }
 });
 
 // === AI Milestone Assistance (HTTP) ===
@@ -144,25 +167,16 @@ exports.aiMilestone = functions.https.onRequest(async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
   const { title = '' } = req.body || {};
   if (!title) return res.status(400).json({ error: 'Missing title' });
-  // Placeholder sample. Replace with model call similar to above.
-  const lower = title.toLowerCase();
-  let definition = 'Strategic milestone to advance business progress.';
-  let steps = [
-    'Clarify success criteria.',
-    'List required tasks/resources.',
-    'Assign ownership & timeline.',
-    'Execute tasks & monitor blockers.',
-    'Review outcome vs criteria & document learnings.',
-  ];
-  if (lower.includes('launch')) {
-    definition = 'Coordinate tasks for a successful product launch with minimal risk.';
-    steps = [
-      'Finalize release candidate build.',
-      'Prepare launch communications & assets.',
-      'Run pre-launch quality checklist.',
-      'Deploy at low-traffic window & verify health.',
-      'Announce & monitor initial user feedback.',
-    ];
+  try {
+    const prompt = `Milestone: ${title}\nProvide a concise definition (max 24 words) and 5 clear steps. JSON schema: {"definition":"","steps":["",""]}`;
+    const data = await callOpenAIJson(prompt, 'Schema: {"definition":"d","steps":["s1","s2"]}');
+    const definition = String(data.definition || '').trim();
+    let steps = Array.isArray(data.steps) ? data.steps.map(s => String(s).trim()).filter(Boolean) : [];
+    steps = steps.slice(0, 7);
+    if (!definition || !steps.length) throw new Error('Empty milestone');
+    return res.json({ definition, steps });
+  } catch (err) {
+    console.error('aiMilestone error', err);
+    return res.status(500).json({ error: 'AI failure' });
   }
-  res.json({ definition, steps });
 });

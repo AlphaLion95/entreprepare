@@ -43,15 +43,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     try {
       await _svc.saveSettings(settings);
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Settings saved')));
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
