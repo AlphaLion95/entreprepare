@@ -32,6 +32,10 @@ class AiIdeaService {
           body: jsonEncode({'query': q, 'limit': 8}),
         )
         .timeout(const Duration(seconds: 25));
+    if (kAiDebugLogging) {
+      // ignore: avoid_print
+      print('[AI Ideas] status=${resp.statusCode} body=${resp.body.substring(0, resp.body.length.clamp(0, 500))}');
+    }
     if (resp.statusCode == 200) {
       final data = jsonDecode(resp.body);
       if (data is Map && data['ideas'] is List) {

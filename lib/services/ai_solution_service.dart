@@ -86,6 +86,10 @@ class AiSolutionService {
           }),
         )
         .timeout(const Duration(seconds: 30));
+    if (kAiDebugLogging) {
+      // ignore: avoid_print
+      print('[AI Solutions] status=${resp.statusCode} body=${resp.body.substring(0, resp.body.length.clamp(0, 600))}');
+    }
     if (resp.statusCode == 200) {
       final data = jsonDecode(resp.body);
       if (data is Map && data['solutions'] is List) {

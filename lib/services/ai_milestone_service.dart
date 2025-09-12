@@ -35,6 +35,10 @@ class AiMilestoneService {
           body: jsonEncode({'title': title}),
         )
         .timeout(const Duration(seconds: 25));
+    if (kAiDebugLogging) {
+      // ignore: avoid_print
+      print('[AI Milestone] status=${resp.statusCode} body=${resp.body.substring(0, resp.body.length.clamp(0, 400))}');
+    }
     if (resp.statusCode == 200) {
       final data = jsonDecode(resp.body);
       if (data is Map && data['definition'] != null && data['steps'] is List) {
