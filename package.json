@@ -20,8 +20,5 @@
   "bugs": {
     "url": "https://github.com/AlphaLion95/entreprepare/issues"
   },
-  "homepage": "https://github.com/AlphaLion95/entreprepare#readme",
-  "dependencies": {
-    "firebase-admin": "^13.5.0"
-  }
+  "homepage": "https://github.com/AlphaLion95/entreprepare#readme"
 }
