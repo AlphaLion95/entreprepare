@@ -125,6 +125,11 @@ export default async function handler(req, res) {
   }
     let parsed = enhancedParse(content, aiDebug);
     let repaired = false;
+    if (aiDebug) {
+      try {
+        console.log('[ai-debug] pre-branch', JSON.stringify({ schemaKind, model, rawLen: (content||'').length, parsed: !!parsed }));
+      } catch(_) {}
+    }
 
     // Auto repair attempt if parse fails or shape invalid
     const attemptRepair = async (reason) => {
@@ -159,6 +164,7 @@ export default async function handler(req, res) {
           if (!ideas.length) ideas = heuristicIdeasFallback(query, limit);
         }
       }
+      if (aiDebug) { try { console.log('[ai-debug] ideas-result', { count: ideas.length, repaired }); } catch(_) {} }
       return res.json({ version: 2, modelUsed: model, repaired, ideas });
     }
     if (schemaKind === 'solutions') {
@@ -169,6 +175,7 @@ export default async function handler(req, res) {
         sols = normalizeSolutions(parsed);
         if (!sols.length) return res.status(502).json({ error: 'empty_solutions_after_repair' });
       }
+      if (aiDebug) { try { console.log('[ai-debug] solutions-result', { count: sols.length, repaired }); } catch(_) {} }
       return res.json({ version: 2, modelUsed: model, repaired, solutions: sols });
     }
     if (schemaKind === 'milestone') {
@@ -179,6 +186,7 @@ export default async function handler(req, res) {
         ms = normalizeMilestone(parsed);
         if (!ms.definition || !ms.steps.length) return res.status(502).json({ error: 'invalid_milestone_after_repair' });
       }
+      if (aiDebug) { try { console.log('[ai-debug] milestone-result', { steps: (ms.steps||[]).length, repaired }); } catch(_) {} }
       return res.json({ version: 2, modelUsed: model, repaired, ...ms });
     }
     if (schemaKind === 'plan' || schemaKind === 'plan_financials') {
@@ -193,6 +201,7 @@ export default async function handler(req, res) {
       const baseResp = { version: 4, modelUsed: model, repaired, planVersion: derived.planVersion || 1, plan: derived };
       if (schemaKind === 'plan_financials') {
         // Only return financial slices + warnings to merge client-side
+        if (aiDebug) { try { console.log('[ai-debug] plan-financials-result', { warnings: (derived.validationWarnings||[]).length }); } catch(_) {} }
         return res.json({
           ...baseResp,
           plan: {
@@ -210,6 +219,7 @@ export default async function handler(req, res) {
           }
         });
       }
+      if (aiDebug) { try { console.log('[ai-debug] plan-result', { title: derived.title, warnings: (derived.validationWarnings||[]).length }); } catch(_) {} }
       return res.json(baseResp);
     }
     return res.status(500).json({ error: 'unexpected_branch' });
