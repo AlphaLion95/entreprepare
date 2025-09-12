@@ -90,19 +90,20 @@ export default async function handler(req, res) {
   let model;
   let content;
   let lastErr;
+  let schemaKind; // hoisted so it is available after loop
   for (const candidate of fallbackModels) {
     model = candidate;
     try {
-      const { prompt, schemaKind } = buildPrompt({ detected, query, activity, problem, goal, title, limit, context, suggestion }, res);
-      if (!prompt) return; // early error already responded
+      const built = buildPrompt({ detected, query, activity, problem, goal, title, limit, context, suggestion }, res);
+      const prompt = built.prompt;
+      schemaKind = built.schemaKind;
+      if (!prompt) return; // early error already responded (e.g. validation response already sent)
       const messages = [
         { role: 'system', content: 'You are a JSON API. Output ONLY strict JSON. No markdown, no commentary, no backticks.' },
         { role: 'user', content: prompt }
       ];
       content = await callGroqWithRetry({ apiKey, model, messages, aiDebug });
       // If we got here, break out (success)
-      var _schemaKind = schemaKind; // preserve for later scopes
-      var _promptWas = prompt; // unused but helpful for debug
       break;
     } catch (err) {
       const msg = String(err.message || '');
@@ -118,6 +119,9 @@ export default async function handler(req, res) {
   }
   if (!content) {
     return res.status(502).json({ error: 'model_unavailable', tried: fallbackModels, lastErr: truncate(String(lastErr||''), 300) });
+  }
+  if (!schemaKind) {
+    return res.status(500).json({ error: 'internal_no_schemaKind', hint: 'Failed to establish schemaKind after model loop.' });
   }
     let parsed = enhancedParse(content, aiDebug);
     let repaired = false;
