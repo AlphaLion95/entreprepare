@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../services/local_store.dart';
 import '../config/ai_config.dart';
+import 'ai_api_client.dart';
 
 class ProblemSolutionSuggestion {
   final String title;
@@ -30,6 +30,14 @@ class ProblemSolutionSuggestion {
 }
 
 class AiSolutionService {
+  late final AiApiClient _client;
+
+  AiSolutionService() {
+    _client = AiApiClient(
+      baseUrl: kAiSolutionsEndpoint,
+      debug: kAiDebugLogging,
+    );
+  }
   Future<List<ProblemSolutionSuggestion>> generateSolutions({
     required String activity,
     required String problem,
@@ -71,41 +79,21 @@ class AiSolutionService {
     String prob,
     String goal,
   ) async {
-    final resp = await http
-        .post(
-          Uri.parse(kAiSolutionsEndpoint),
-          headers: {
-            'Content-Type': 'application/json',
-            if (kAiApiKey.isNotEmpty) 'Authorization': 'Bearer $kAiApiKey',
-          },
-          body: jsonEncode({
-            'activity': act,
-            'problem': prob,
-            'goal': goal,
-            'limit': 3,
-          }),
-        )
-        .timeout(const Duration(seconds: 30));
-    if (kAiDebugLogging) {
-      // ignore: avoid_print
-      print('[AI Solutions] status=${resp.statusCode} body=${resp.body.substring(0, resp.body.length.clamp(0, 600))}');
+    try {
+      final data = await _client.postType('solutions', {
+        'activity': act,
+        'problem': prob,
+        'goal': goal,
+        'limit': 3,
+      });
+      final list = (data['solutions'] as List? ?? [])
+          .map((e) => ProblemSolutionSuggestion.fromMap(Map<String,dynamic>.from(e as Map)))
+          .where((s)=> s.title.isNotEmpty && s.steps.isNotEmpty)
+          .toList();
+      return list;
+    } on AiApiException catch (e) {
+      throw Exception('AI solutions failed: ${e.code}${e.message!=null?': '+e.message!:''}');
     }
-    if (resp.statusCode == 200) {
-      final data = jsonDecode(resp.body);
-      if (data is Map && data['solutions'] is List) {
-        final list = (data['solutions'] as List)
-            .map(
-              (e) => ProblemSolutionSuggestion.fromMap(
-                Map<String, dynamic>.from(e as Map),
-              ),
-            )
-            .where((s) => s.title.isNotEmpty && s.steps.isNotEmpty)
-            .toList();
-        return list;
-      }
-      throw Exception('Malformed AI response');
-    }
-    throw Exception('AI request failed (${resp.statusCode})');
   }
 
   Future<List<ProblemSolutionSuggestion>> generateFromContext(

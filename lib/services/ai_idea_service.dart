@@ -1,9 +1,16 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../config/ai_config.dart';
 import 'local_store.dart';
+import 'ai_api_client.dart';
 
 class AiIdeaService {
+  late final AiApiClient _client;
+
+  AiIdeaService() {
+    _client = AiApiClient(
+      baseUrl: kAiIdeasEndpoint,
+      debug: kAiDebugLogging,
+    );
+  }
   Future<List<String>> getIdeas(String query) async {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return [];
@@ -22,32 +29,12 @@ class AiIdeaService {
   }
 
   Future<List<String>> _fetchRemote(String q) async {
-    final resp = await http
-        .post(
-          Uri.parse(kAiIdeasEndpoint),
-          headers: {
-            'Content-Type': 'application/json',
-            if (kAiApiKey.isNotEmpty) 'Authorization': 'Bearer $kAiApiKey',
-          },
-          body: jsonEncode({'query': q, 'limit': 8}),
-        )
-        .timeout(const Duration(seconds: 25));
-    if (kAiDebugLogging) {
-      // ignore: avoid_print
-      print('[AI Ideas] status=${resp.statusCode} body=${resp.body.substring(0, resp.body.length.clamp(0, 500))}');
+    try {
+      final data = await _client.postType('ideas', {'query': q, 'limit': 8});
+      final ideas = (data['ideas'] as List?) ?? [];
+      return ideas.map((e) => e.toString().trim()).where((s)=>s.isNotEmpty).toList();
+    } on AiApiException catch (e) {
+      throw Exception('AI ideas failed: ${e.code}${e.message!=null?': '+e.message!:''}');
     }
-    if (resp.statusCode == 200) {
-      final data = jsonDecode(resp.body);
-      if (data is Map && data['ideas'] is List) {
-        final list = (data['ideas'] as List)
-            .map((e) => e.toString())
-            .where((e) => e.trim().isNotEmpty)
-            .take(12)
-            .toList();
-        if (list.isNotEmpty) return list;
-      }
-      throw Exception('Malformed AI response');
-    }
-    throw Exception('AI request failed (${resp.statusCode})');
   }
 }

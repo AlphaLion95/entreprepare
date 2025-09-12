@@ -1,6 +1,5 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../config/ai_config.dart';
+import 'ai_api_client.dart';
 
 class MilestoneSuggestion {
   final String definition;
@@ -18,6 +17,14 @@ class MilestoneSuggestion {
 }
 
 class AiMilestoneService {
+  late final AiApiClient _client;
+
+  AiMilestoneService() {
+    _client = AiApiClient(
+      baseUrl: kAiMilestoneEndpoint,
+      debug: kAiDebugLogging,
+    );
+  }
   Future<MilestoneSuggestion> generate(String title) async {
     if (title.trim().isEmpty) {
       return MilestoneSuggestion(definition: '', steps: const []);
@@ -25,27 +32,17 @@ class AiMilestoneService {
     if (!(kAiRemoteEnabled && kAiMilestoneEndpoint.isNotEmpty)) {
       throw Exception('Remote AI disabled. Configure endpoints and enable.');
     }
-    final resp = await http
-        .post(
-          Uri.parse(kAiMilestoneEndpoint),
-          headers: {
-            'Content-Type': 'application/json',
-            if (kAiApiKey.isNotEmpty) 'Authorization': 'Bearer $kAiApiKey',
-          },
-          body: jsonEncode({'title': title}),
-        )
-        .timeout(const Duration(seconds: 25));
-    if (kAiDebugLogging) {
-      // ignore: avoid_print
-      print('[AI Milestone] status=${resp.statusCode} body=${resp.body.substring(0, resp.body.length.clamp(0, 400))}');
-    }
-    if (resp.statusCode == 200) {
-      final data = jsonDecode(resp.body);
-      if (data is Map && data['definition'] != null && data['steps'] is List) {
-        return MilestoneSuggestion.fromMap(Map<String, dynamic>.from(data));
+    try {
+      final data = await _client.postType('milestone', {'title': title});
+      if (data['definition'] is String && data['steps'] is List) {
+        return MilestoneSuggestion(
+          definition: (data['definition'] as String).trim(),
+          steps: (data['steps'] as List).map((e)=>e.toString().trim()).where((s)=>s.isNotEmpty).toList(),
+        );
       }
-      throw Exception('Malformed AI response');
+      throw Exception('Malformed milestone response');
+    } on AiApiException catch (e) {
+      throw Exception('AI milestone failed: ${e.code}${e.message!=null?': '+e.message!:''}');
     }
-    throw Exception('AI request failed (${resp.statusCode})');
   }
 }
