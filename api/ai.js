@@ -68,6 +68,7 @@ export default async function handler(req, res) {
 
   const body = req.body || {};
   const { type, query, activity, problem, goal, title, limit, context, suggestion } = body;
+  const requestReceivedAt = Date.now();
   if (aiDebug) {
     try {
       console.log('[ai-endpoint] incoming type:', type, 'keys:', Object.keys(body));
@@ -105,7 +106,9 @@ export default async function handler(req, res) {
         { role: 'user', content: prompt }
       ];
       const t0 = Date.now();
-      content = await callGroqWithRetry({ apiKey, model, messages, aiDebug });
+  const callResult = await callGroqWithRetry({ apiKey, model, messages, aiDebug });
+  content = callResult.content;
+  var lastUsage = callResult.usage || null;
       modelCallMs = Date.now() - t0;
       modelChainTried.push(candidate);
       // If we got here, break out (success)
@@ -152,7 +155,9 @@ export default async function handler(req, res) {
         { role: 'user', content: repairInstruction }
       ];
       const tR0 = Date.now();
-      content = await callGroqWithRetry({ apiKey, model, messages: repairMessages, aiDebug });
+  const repairCall = await callGroqWithRetry({ apiKey, model, messages: repairMessages, aiDebug });
+  content = repairCall.content;
+  var lastRepairUsage = repairCall.usage || null;
       repair1Ms = Date.now() - tR0;
       parsed = enhancedParse(content, aiDebug);
       return !!parsed;
@@ -203,7 +208,9 @@ export default async function handler(req, res) {
               ];
               const tR20 = Date.now();
               try {
-                const repairedContent2 = await callGroqWithRetry({ apiKey, model, messages: repairMessages2, aiDebug });
+                const repairedCall2 = await callGroqWithRetry({ apiKey, model, messages: repairMessages2, aiDebug });
+                const repairedContent2 = repairedCall2.content;
+                var lastRepair2Usage = repairedCall2.usage || null;
                 repair2Ms = Date.now() - tR20;
                 // Replace only if parseable
                 const parsed2 = enhancedParse(repairedContent2, aiDebug);
@@ -227,14 +234,22 @@ export default async function handler(req, res) {
       }
       if (aiDebug) { try { console.log('[ai-debug] ideas-result', { count: ideas.length, repaired, fallbackUsed, modelCallMs, repair1Ms, repair2Ms }); } catch(_) {} }
       const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
-      const resp = { version: 3, modelUsed: model, modelAttempt, repaired, fallbackUsed, ideas };
+      // Create stable IDs (sha-like hash) for each idea
+      const ideasDetailed = ideas.map(text => ({ id: hashId(text), text }));
+      const codeVersion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown';
+      const requestMeta = { type: detected, limit: safeLimit, queryLen: (query||'').length, receivedAt: requestReceivedAt };
+      const attempts = { modelCallMs, repair1Ms, repair2Ms, repaired, modelAttempt };
+      const usage = lastUsage || lastRepairUsage || lastRepair2Usage || null;
+      const resp = { version: 3, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed, ideas, ideasDetailed, requestMeta };
       if (aiDebug) {
         resp.debug = {
           modelChainTried,
             modelCallMs,
             repair1Ms,
             repair2Ms,
-            responseChars: (content||'').length
+            responseChars: (content||'').length,
+            usage,
+            attempts
         };
       }
       return res.json(resp);
@@ -249,9 +264,13 @@ export default async function handler(req, res) {
       }
       if (aiDebug) { try { console.log('[ai-debug] solutions-result', { count: sols.length, repaired, modelCallMs, repair1Ms }); } catch(_) {} }
       const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
-      const resp = { version: 2, modelUsed: model, modelAttempt, repaired, solutions: sols };
+      const codeVersion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown';
+      const requestMeta = { type: detected, limit: parseInt(limit||3,10), activityLen: (activity||'').length, problemLen: (problem||'').length, receivedAt: requestReceivedAt };
+      const attempts = { modelCallMs, repair1Ms, repaired, modelAttempt };
+      const usage = lastUsage || lastRepairUsage || null;
+      const resp = { version: 2, codeVersion, modelUsed: model, modelAttempt, repaired, solutions: sols, requestMeta };
       if (aiDebug) {
-        resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length };
+        resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, usage, attempts };
       }
       return res.json(resp);
     }
@@ -265,9 +284,13 @@ export default async function handler(req, res) {
       }
       if (aiDebug) { try { console.log('[ai-debug] milestone-result', { steps: (ms.steps||[]).length, repaired, modelCallMs, repair1Ms }); } catch(_) {} }
       const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
-      const resp = { version: 2, modelUsed: model, modelAttempt, repaired, ...ms };
+      const codeVersion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown';
+      const requestMeta = { type: detected, titleLen: (title||'').length, receivedAt: requestReceivedAt };
+      const attempts = { modelCallMs, repair1Ms, repaired, modelAttempt };
+      const usage = lastUsage || lastRepairUsage || null;
+      const resp = { version: 2, codeVersion, modelUsed: model, modelAttempt, repaired, ...ms, requestMeta };
       if (aiDebug) {
-        resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length };
+        resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, usage, attempts };
       }
       return res.json(resp);
     }
@@ -281,9 +304,13 @@ export default async function handler(req, res) {
       }
       const derived = addPlanDerived(planObj); // includes warnings & projections
       const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
-      const baseResp = { version: 4, modelUsed: model, modelAttempt, repaired, planVersion: derived.planVersion || 1, plan: derived };
+      const codeVersion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown';
+      const requestMeta = { type: detected, contextLen: (context||'').length, suggestionLen: (suggestion||'').length, receivedAt: requestReceivedAt };
+      const attempts = { modelCallMs, repair1Ms, repaired, modelAttempt };
+      const usage = lastUsage || lastRepairUsage || null;
+      const baseResp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, planVersion: derived.planVersion || 1, plan: derived, requestMeta };
       if (aiDebug) {
-        baseResp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length };
+        baseResp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, usage, attempts };
       }
       if (schemaKind === 'plan_financials') {
         // Only return financial slices + warnings to merge client-side
@@ -386,8 +413,9 @@ async function callGroqWithRetry({ apiKey, model, messages, aiDebug, maxAttempts
     if (resp.ok) {
       const data = await resp.json();
       const content = data.choices?.[0]?.message?.content || '{}';
+      const usage = data.usage || null; // expect {prompt_tokens, completion_tokens, total_tokens}
       if (aiDebug) console.log('[groq-content]', truncate(content, 200));
-      return content;
+      return { content, usage, raw: data };
     }
     const status = resp.status;
     const text = await resp.text();
@@ -635,4 +663,15 @@ function sanitizeLimit(raw, def = 8, max = 12) {
   if (!isFinite(n) || n <= 0) n = def;
   if (n > max) n = max;
   return n;
+}
+
+// Simple stable hash for idea text -> short id (not cryptographic)
+function hashId(text) {
+  const str = String(text||'');
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(31, h) + str.charCodeAt(i) | 0;
+  }
+  // Convert to unsigned and base36 shorten
+  return 'i_' + (h >>> 0).toString(36);
 }
