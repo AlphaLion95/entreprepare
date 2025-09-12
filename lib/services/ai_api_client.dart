@@ -21,8 +21,10 @@ class AiApiClient {
     final uri = Uri.parse(baseUrl);
     final payload = { 'type': type, ...body };
     if (debug) {
+      final enc = jsonEncode(payload);
+      final max = enc.length > 400 ? 400 : enc.length;
       // ignore: avoid_print
-      print('[AiApiClient] -> $type ${jsonEncode(payload).substring(0, payload.length>400?400:payload.length)}');
+      print('[AiApiClient] -> $type (${enc.length}b) ${enc.substring(0, max)}');
     }
     final headers = <String,String>{'Content-Type':'application/json'};
     if (groqDevKey!=null && groqDevKey!.isNotEmpty) headers['X-Groq-Key'] = groqDevKey!;
@@ -32,7 +34,8 @@ class AiApiClient {
     try { decoded = jsonDecode(resp.body) as Map<String,dynamic>; } catch(_) {}
     if (resp.statusCode != 200) {
       final code = decoded?['error']?.toString() ?? 'http_${resp.statusCode}';
-      throw AiApiException(code, decoded?['hint']?.toString() ?? decoded?['detail']?.toString());
+      final msg = decoded?['hint']?.toString() ?? decoded?['detail']?.toString() ?? decoded?['error']?.toString();
+      throw AiApiException(code, msg);
     }
     if (debug) {
       // ignore: avoid_print

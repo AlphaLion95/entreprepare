@@ -110,6 +110,7 @@ class AiPlanService {
       }
       throw Exception('Malformed AI plan response');
     } on AiApiException catch (e) {
+      // Surface unsupported_type clearly so UI can hint redeploy or mismatch
       throw Exception('AI plan failed: ${e.code}${e.message!=null?': '+e.message!:''}');
     }
   }
