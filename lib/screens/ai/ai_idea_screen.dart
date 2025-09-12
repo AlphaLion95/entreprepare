@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import '../../config/ai_config.dart';
 import '../../services/ai_idea_service.dart';
+import '../../utils/ai_error_mapper.dart';
 import '../../services/ai_solution_service.dart';
 import '../../services/plan_service.dart';
 import '../../models/plan.dart';
+import '../../services/ai_plan_service.dart';
+import '../../services/ai_health_service.dart';
+import '../plan/plan_detail_screen.dart';
 
 class AiIdeaScreen extends StatefulWidget {
   const AiIdeaScreen({super.key});
@@ -18,6 +23,7 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
   final _ideaService = AiIdeaService();
   final _solutionService = AiSolutionService();
   final _planService = PlanService();
+  final _aiPlanService = AiPlanService();
 
   late final TabController _tab;
 
@@ -26,17 +32,25 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
   bool _loadingIdeas = false;
   List<String> _ideas = [];
   String _ideaError = '';
+  String _ideaErrorCode = '';
 
   // Problem solver unified context
   final _contextCtl = TextEditingController();
   bool _loadingSolutions = false;
   List<ProblemSolutionSuggestion> _solutions = [];
   String _solutionError = '';
+  String _solutionErrorCode = '';
+  bool _creatingPlan = false;
+  AiHealthStatus? _health;
+  bool _healthLoading = false;
+  bool _overridePlanLock = false;
+  bool _showHealthBanner = true; // allows dismissing success banner
 
   @override
   void initState() {
     super.initState();
     _tab = TabController(length: 2, vsync: this);
+    _runHealthCheck();
   }
 
   @override
@@ -45,6 +59,13 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
     _queryCtl.dispose();
     _contextCtl.dispose();
     super.dispose();
+  }
+
+  Future<void> _runHealthCheck() async {
+    setState(() { _healthLoading = true; });
+    final svc = AiHealthService();
+    final h = await svc.check();
+    if (mounted) setState(() { _health = h; _healthLoading = false; });
   }
 
   Future<void> _runIdeas() async {
@@ -59,13 +80,10 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
       if (mounted) setState(() => _ideas = results);
     } catch (e) {
       if (!mounted) return;
-      final msg = e.toString();
-      String friendly = 'Failed: $msg';
-      if (msg.contains('Remote AI disabled')) {
-        friendly =
-            'AI disabled. Set your deployed function URLs in ai_config.dart (kAiIdeasEndpoint, enable kAiRemoteEnabled) then rebuild.';
-      }
-      setState(() => _ideaError = friendly);
+      setState(() {
+        _ideaError = AiErrorMapper.map(e);
+        _ideaErrorCode = e.toString().contains('missing_type') ? 'missing_type' : '';
+      });
     } finally {
       if (mounted) setState(() => _loadingIdeas = false);
     }
@@ -83,44 +101,84 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
       if (mounted) setState(() => _solutions = res);
     } catch (e) {
       if (!mounted) return;
-      final msg = e.toString();
-      String friendly = 'Failed: $msg';
-      if (msg.contains('Remote AI disabled')) {
-        friendly =
-            'AI disabled. Configure endpoints (kAiSolutionsEndpoint, kAiRemoteEnabled) and redeploy.';
-      }
-      setState(() => _solutionError = friendly);
+      setState(() {
+        _solutionError = AiErrorMapper.map(e);
+        _solutionErrorCode = e.toString().contains('missing_type') ? 'missing_type' : '';
+      });
     } finally {
       if (mounted) setState(() => _loadingSolutions = false);
     }
   }
 
   Future<void> _addSuggestionToPlan(ProblemSolutionSuggestion s) async {
-    final plan = Plan(
-      id: '',
-      businessId: '',
-      title: s.title,
-      capitalEstimated: 0,
-      pricePerUnit: 0,
-      estMonthlySales: 0,
-      inventory: const [],
-      milestones: s.steps
-          .map((st) => Milestone(id: const Uuid().v4(), title: st))
-          .toList(),
-      expenses: const [],
-      createdAt: DateTime.now(),
-    );
+    if (_creatingPlan) return;
+    setState(() => _creatingPlan = true);
     try {
+      final contextText = _contextCtl.text.trim();
+      final planGen = await _aiPlanService.generate(
+        context: contextText,
+        suggestion: jsonEncode(s.toMap()),
+      );
+      double clampPct(double v) => v.isNaN ? 0 : v.clamp(0, 100);
+      double clampNonNeg(double v) => v.isNaN ? 0 : (v < 0 ? 0 : v);
+      final plan = Plan(
+        id: '',
+        businessId: '',
+        title: planGen.title.isNotEmpty ? planGen.title : s.title,
+        summary: planGen.summary,
+        capitalEstimated: planGen.capitalRequired,
+        pricePerUnit: planGen.pricePerUnit,
+        estMonthlySales: planGen.estMonthlyUnits,
+        salesAssumptions: planGen.salesAssumptions,
+        growthPctMonth: clampPct(planGen.growthPctMonth),
+        inventory: planGen.inventory
+            .map(
+              (i) => PlanItem(
+                id: const Uuid().v4(),
+                name: i.name,
+                qty: i.qty,
+                unitCost: i.unitCost,
+              ),
+            )
+            .toList(),
+        milestones: (planGen.milestones.isNotEmpty
+                ? planGen.milestones
+                : s.steps)
+            .map((m) => Milestone(id: const Uuid().v4(), title: m))
+            .toList(),
+        expenses: planGen.expenses
+            .map(
+              (e) => ExpenseItem(
+                id: const Uuid().v4(),
+                name: e.name,
+                monthlyCost: e.monthlyCost,
+              ),
+            )
+            .toList(),
+        innovations: planGen.innovations,
+        grossMarginPct: clampPct(planGen.grossMarginPct),
+        operatingMarginPct: clampPct(planGen.operatingMarginPct),
+        breakevenMonths: clampNonNeg(planGen.breakevenMonths),
+        createdAt: DateTime.now(),
+  planVersion: planGen.planVersion,
+      );
       final id = await _planService.createPlan(plan);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Plan created: $id')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Plan created with AI details: $id')),
+      );
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PlanDetailScreen(plan: plan.withComputedProjection()),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to create plan: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Plan generation failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _creatingPlan = false);
     }
   }
 
@@ -323,9 +381,9 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: TextButton.icon(
-                                      onPressed: () => _addSuggestionToPlan(s),
+                                      onPressed: _creatingPlan || (!(_health?.planSupported ?? true) && !_overridePlanLock) ? null : () => _addSuggestionToPlan(s),
                                       icon: const Icon(Icons.add_task),
-                                      label: const Text('Add to Plan'),
+                                      label: Text(_creatingPlan ? 'Creating…' : 'Add to Plan'),
                                     ),
                                   ),
                                 ],
@@ -344,6 +402,7 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
 
   @override
   Widget build(BuildContext context) {
+    final showTypeBanner = _ideaErrorCode == 'missing_type' || _solutionErrorCode == 'missing_type';
     return Scaffold(
       appBar: AppBar(
         title: const Text('AI Assist'),
@@ -355,9 +414,102 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tab,
-        children: [_buildIdeasTab(), _buildProblemSolverTab()],
+      body: Column(
+        children: [
+          if (_healthLoading)
+            const LinearProgressIndicator(minHeight: 2),
+          if (!_healthLoading && _health != null && _health!.planSupported && _showHealthBanner)
+            Material(
+              color: Colors.green.shade50,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'AI backend ready (v${_health!.version ?? '?'}) • Plan generation enabled',
+                        style: const TextStyle(fontSize: 12, color: Colors.green),
+                      ),
+                    ),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: _runHealthCheck,
+                      icon: const Icon(Icons.refresh, size: 18, color: Colors.green),
+                      tooltip: 'Re-check',
+                    ),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.close, size: 18, color: Colors.green),
+                      tooltip: 'Dismiss',
+                      onPressed: ()=> setState(()=> _showHealthBanner = false),
+                    )
+                  ],
+                ),
+              ),
+            ),
+          if (!_healthLoading && _health != null && !_health!.planSupported)
+            Material(
+              color: Colors.red.shade50,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Backend AI version: ${_health!.version ?? '?'} (need >=4). Reachable: ${_health!.reachable}. Message: ${_health!.message ?? '-'}' +
+                        (_health!.rawSnippet!=null ? '\nSnippet: ${_health!.rawSnippet}' : '') +
+                        (!_overridePlanLock ? '\nAdd to Plan disabled until backend updated or FORCE pressed.' : '\nOverride active: attempting generation anyway.') ,
+                        style: const TextStyle(fontSize: 12, color: Colors.red),
+                      ),
+                    ),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: _runHealthCheck,
+                      icon: const Icon(Icons.refresh, size: 18),
+                      tooltip: 'Retry',
+                    ),
+                    if (!_overridePlanLock)
+                      TextButton(
+                        onPressed: () => setState(()=> _overridePlanLock = true),
+                        child: const Text('FORCE', style: TextStyle(fontSize: 11)),
+                      )
+                  ],
+                ),
+              ),
+            ),
+          if (showTypeBanner)
+            Material(
+              color: Colors.amber.shade100,
+              elevation: 1,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal:12, vertical: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('Server reported missing_type. Client must send {"type":"..."}. Update or redeploy backend if this persists.', style: const TextStyle(fontSize: 12))),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 18),
+                      onPressed: () => setState(() { _ideaErrorCode=''; _solutionErrorCode=''; }),
+                      tooltip: 'Dismiss',
+                    )
+                  ],
+                ),
+              ),
+            ),
+          Expanded(
+            child: TabBarView(
+              controller: _tab,
+              children: [_buildIdeasTab(), _buildProblemSolverTab() ],
+            ),
+          ),
+        ],
       ),
     );
   }

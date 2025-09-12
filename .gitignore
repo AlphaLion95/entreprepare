@@ -66,3 +66,4 @@ scripts/serviceAccountKey.json
 firebase-debug.log
 firestore-debug.log
 firebase-data/
+.vercel

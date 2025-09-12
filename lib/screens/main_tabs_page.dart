@@ -6,6 +6,7 @@ import 'about_screen.dart';
 import 'learn/learn_list_screen.dart';
 import '../config/ai_config.dart';
 import 'ai/ai_idea_screen.dart';
+import 'ai/ai_debug_screen.dart';
 
 class MainTabsPage extends StatefulWidget {
   final int initialIndex;
@@ -31,8 +32,17 @@ class _MainTabsPageState extends State<MainTabsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Long-press anywhere on current tab body to open the hidden AI debug screen.
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: GestureDetector(
+        onLongPress: () {
+          // Hidden entry: long press anywhere on current tab body opens AI Debug.
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const AiDebugScreen()));
+        },
+        child: _pages[_selectedIndex],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onItemTapped,
