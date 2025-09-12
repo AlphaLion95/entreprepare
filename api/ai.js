@@ -152,9 +152,12 @@ export default async function handler(req, res) {
       let ideas = normalizeIdeas(parsed, limit);
       if (!ideas.length) {
         const ok = await attemptRepair('empty_ideas_list');
-        if (!ok) return res.status(502).json({ error: 'empty_ideas', raw: truncate(JSON.stringify(parsed), 600) });
-        ideas = normalizeIdeas(parsed, limit);
-        if (!ideas.length) return res.status(502).json({ error: 'empty_ideas_after_repair' });
+        if (!ok) {
+          ideas = heuristicIdeasFallback(query, limit);
+        } else {
+          ideas = normalizeIdeas(parsed, limit);
+          if (!ideas.length) ideas = heuristicIdeasFallback(query, limit);
+        }
       }
       return res.json({ version: 2, modelUsed: model, repaired, ideas });
     }
@@ -221,7 +224,15 @@ function buildPrompt({ detected, query, activity, problem, goal, title, limit, c
   if (detected === 'ideas') {
     if (!query) { res.status(400).json({ error: 'missing_query' }); return {}; }
     const n = Math.min(parseInt(limit || 8, 10), 12);
-    prompt = `Generate up to ${n} concise (5-12 words) actionable startup or small business ideas about: ${query}. Strict JSON: {"ideas":["idea 1","idea 2"]}. No numbering.`;
+    // Lightweight normalization to reduce model confusion on pluralization / grammar
+    let nq = String(query).trim();
+    nq = nq.replace(/\bfoods\b/gi, 'food');
+    // If singular 'product' appears and 'products' does not, pluralize for diversity
+    if (/\bproduct\b/i.test(nq) && !/\bproducts\b/i.test(nq)) {
+      nq = nq.replace(/\bproduct\b/gi, 'products');
+    }
+    // Strengthen instruction: EXACTLY N distinct ideas, forbid numbering/commentary
+    prompt = `Generate EXACTLY ${n} distinct concise (5-12 words) actionable startup or small business ideas about: ${nq}. Output STRICT JSON ONLY: {"ideas":["idea 1","idea 2", "idea 3"]}. No numbering, no commentary, no markdown. Ideas must be unique and specific.`;
   } else if (detected === 'solutions') {
     if (!activity || !problem) { res.status(400).json({ error: 'missing_fields' }); return {}; }
     const n = Math.min(parseInt(limit || 3, 10), 5);
@@ -477,3 +488,45 @@ function incrementRate(ip, now) {
   rec.count += 1;
   return rec.count;
 }
+
+// Heuristic fallback generator when model fails to return ideas
+function heuristicIdeasFallback(query, limitRaw) {
+  const base = (String(query||'').trim() || 'business').toLowerCase();
+  const limit = Math.min(parseInt(limitRaw || 8, 10), 12);
+  const hasCheap = /(cheap|low cost|budget)/.test(base);
+  const hasFood = /food/.test(base);
+  const hasProduct = /product/.test(base);
+  const seeds = [
+    'Subscription kit',
+    'Mobile app service',
+    'On-demand support',
+    'Digital template shop',
+    'Local delivery network',
+    'Community micro-learning',
+    'Pop-up experience booth',
+    'Data insight dashboard',
+    'Eco-friendly packaging',
+    'AI assisted workflow'
+  ];
+  const uniq = new Set();
+  for (const s of seeds) {
+    if (uniq.size >= limit) break;
+    uniq.add(capitalize(composeIdea(base, s, { hasCheap, hasFood, hasProduct })));
+  }
+  return Array.from(uniq).slice(0, limit);
+}
+
+function composeIdea(base, seed, flags) {
+  if (!base) return seed;
+  const parts = [];
+  if (flags?.hasCheap) parts.push('Low-cost');
+  if (flags?.hasFood) parts.push('Food Stall');
+  if (flags?.hasProduct) parts.push('Product');
+  // Avoid repeating words already in seed
+  const seedLower = seed.toLowerCase();
+  const filtered = parts.filter(p => !seedLower.includes(p.toLowerCase()));
+  filtered.push(seed);
+  return filtered.join(' ');
+}
+
+function capitalize(str) { return str ? str.charAt(0).toUpperCase() + str.slice(1) : str; }
