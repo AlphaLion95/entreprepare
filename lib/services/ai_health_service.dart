@@ -40,9 +40,15 @@ class AiHealthService {
           rawSnippet: resp.body.substring(0, resp.body.length>160?160:resp.body.length),
         );
       }
-      final v = json['version'] is int ? json['version'] as int : int.tryParse(json['version']?.toString() ?? '');
-      // We consider plan support available at version >=4
-      final planSupported = (v ?? 0) >= 4;
+      int? v = json['version'] is int ? json['version'] as int : int.tryParse(json['version']?.toString() ?? '');
+      bool planSupported;
+      if (json.containsKey('planSupported')) {
+        planSupported = json['planSupported'] == true;
+        // If backend omitted numeric version but explicitly states planSupported, infer minimum compatible version 4
+        if (v == null && planSupported) v = 4;
+      } else {
+        planSupported = (v ?? 0) >= 4;
+      }
       return AiHealthStatus(
         reachable: true,
         version: v,

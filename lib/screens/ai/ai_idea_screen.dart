@@ -44,6 +44,7 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
   AiHealthStatus? _health;
   bool _healthLoading = false;
   bool _overridePlanLock = false;
+  bool _showHealthBanner = true; // allows dismissing success banner
 
   @override
   void initState() {
@@ -417,6 +418,38 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
         children: [
           if (_healthLoading)
             const LinearProgressIndicator(minHeight: 2),
+          if (!_healthLoading && _health != null && _health!.planSupported && _showHealthBanner)
+            Material(
+              color: Colors.green.shade50,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'AI backend ready (v${_health!.version ?? '?'}) • Plan generation enabled',
+                        style: const TextStyle(fontSize: 12, color: Colors.green),
+                      ),
+                    ),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: _runHealthCheck,
+                      icon: const Icon(Icons.refresh, size: 18, color: Colors.green),
+                      tooltip: 'Re-check',
+                    ),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.close, size: 18, color: Colors.green),
+                      tooltip: 'Dismiss',
+                      onPressed: ()=> setState(()=> _showHealthBanner = false),
+                    )
+                  ],
+                ),
+              ),
+            ),
           if (!_healthLoading && _health != null && !_health!.planSupported)
             Material(
               color: Colors.red.shade50,
