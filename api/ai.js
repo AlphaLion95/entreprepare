@@ -91,6 +91,8 @@ export default async function handler(req, res) {
   let content;
   let lastErr;
   let schemaKind; // hoisted so it is available after loop
+  const modelChainTried = [];
+  let modelCallMs = 0;
   for (const candidate of fallbackModels) {
     model = candidate;
     try {
@@ -102,7 +104,10 @@ export default async function handler(req, res) {
         { role: 'system', content: 'You are a JSON API. Output ONLY strict JSON. No markdown, no commentary, no backticks.' },
         { role: 'user', content: prompt }
       ];
+      const t0 = Date.now();
       content = await callGroqWithRetry({ apiKey, model, messages, aiDebug });
+      modelCallMs = Date.now() - t0;
+      modelChainTried.push(candidate);
       // If we got here, break out (success)
       break;
     } catch (err) {
@@ -111,8 +116,10 @@ export default async function handler(req, res) {
       if (aiDebug) console.warn('[model-error]', candidate, msg);
       if (/model_decommissioned|no longer supported|model_not_found/i.test(msg)) {
         // continue to next candidate silently
+        modelChainTried.push(candidate);
         continue;
       }
+      modelChainTried.push(candidate);
       // Non-decommission error: stop trying further models
       break;
     }
@@ -124,7 +131,9 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'internal_no_schemaKind', hint: 'Failed to establish schemaKind after model loop.' });
   }
     let parsed = enhancedParse(content, aiDebug);
-    let repaired = false;
+    let repaired = false; // indicates at least one repair attempt occurred
+    let repair1Ms = 0;
+    let repair2Ms = 0;
     if (aiDebug) {
       try {
         console.log('[ai-debug] pre-branch', JSON.stringify({ schemaKind, model, rawLen: (content||'').length, parsed: !!parsed }));
@@ -133,7 +142,7 @@ export default async function handler(req, res) {
 
     // Auto repair attempt if parse fails or shape invalid
     const attemptRepair = async (reason) => {
-      if (repaired) return false; // only once
+      if (repaired) return false; // only once for generic path
       repaired = true;
       const repairInstruction = buildRepairInstruction(schemaKind, reason, content);
       if (!repairInstruction) return false;
@@ -142,7 +151,9 @@ export default async function handler(req, res) {
         { role: 'system', content: 'You are a JSON API. Output ONLY strict JSON. No markdown, no commentary, no backticks.' },
         { role: 'user', content: repairInstruction }
       ];
+      const tR0 = Date.now();
       content = await callGroqWithRetry({ apiKey, model, messages: repairMessages, aiDebug });
+      repair1Ms = Date.now() - tR0;
       parsed = enhancedParse(content, aiDebug);
       return !!parsed;
     };
@@ -155,17 +166,56 @@ export default async function handler(req, res) {
     // Shape enforcement with possible repair
     if (schemaKind === 'ideas') {
       let ideas = normalizeIdeas(parsed, limit);
+      let fallbackUsed = false;
       if (!ideas.length) {
         const ok = await attemptRepair('empty_ideas_list');
         if (!ok) {
           ideas = heuristicIdeasFallback(query, limit);
+          fallbackUsed = true;
         } else {
           ideas = normalizeIdeas(parsed, limit);
-          if (!ideas.length) ideas = heuristicIdeasFallback(query, limit);
+          // SECOND repair attempt (ideas only) if still empty
+          if (!ideas.length) {
+            // manual second repair ignoring single-attempt guard
+            const repairInstruction2 = buildRepairInstruction(schemaKind, 'empty_ideas_list_second', content);
+            if (repairInstruction2) {
+              if (aiDebug) console.warn('[repair-attempt-2]', 'empty_ideas_list_second');
+              const repairMessages2 = [
+                { role: 'system', content: 'You are a JSON API. Output ONLY strict JSON. No markdown, no commentary, no backticks.' },
+                { role: 'user', content: repairInstruction2 }
+              ];
+              const tR20 = Date.now();
+              try {
+                const repairedContent2 = await callGroqWithRetry({ apiKey, model, messages: repairMessages2, aiDebug });
+                repair2Ms = Date.now() - tR20;
+                // Replace only if parseable
+                const parsed2 = enhancedParse(repairedContent2, aiDebug);
+                if (parsed2 && Array.isArray(parsed2.ideas) && parsed2.ideas.length) {
+                  content = repairedContent2;
+                  parsed = parsed2;
+                  ideas = normalizeIdeas(parsed2, limit);
+                }
+              } catch (_) {
+                repair2Ms = Date.now() - tR20;
+              }
+            }
+            if (!ideas.length) { ideas = heuristicIdeasFallback(query, limit); fallbackUsed = true; }
+          }
         }
       }
-      if (aiDebug) { try { console.log('[ai-debug] ideas-result', { count: ideas.length, repaired }); } catch(_) {} }
-      return res.json({ version: 2, modelUsed: model, repaired, ideas });
+      if (aiDebug) { try { console.log('[ai-debug] ideas-result', { count: ideas.length, repaired, fallbackUsed, modelCallMs, repair1Ms, repair2Ms }); } catch(_) {} }
+      const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
+      const resp = { version: 3, modelUsed: model, modelAttempt, repaired, fallbackUsed, ideas };
+      if (aiDebug) {
+        resp.debug = {
+          modelChainTried,
+            modelCallMs,
+            repair1Ms,
+            repair2Ms,
+            responseChars: (content||'').length
+        };
+      }
+      return res.json(resp);
     }
     if (schemaKind === 'solutions') {
       let sols = normalizeSolutions(parsed);
@@ -175,8 +225,13 @@ export default async function handler(req, res) {
         sols = normalizeSolutions(parsed);
         if (!sols.length) return res.status(502).json({ error: 'empty_solutions_after_repair' });
       }
-      if (aiDebug) { try { console.log('[ai-debug] solutions-result', { count: sols.length, repaired }); } catch(_) {} }
-      return res.json({ version: 2, modelUsed: model, repaired, solutions: sols });
+      if (aiDebug) { try { console.log('[ai-debug] solutions-result', { count: sols.length, repaired, modelCallMs, repair1Ms }); } catch(_) {} }
+      const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
+      const resp = { version: 2, modelUsed: model, modelAttempt, repaired, solutions: sols };
+      if (aiDebug) {
+        resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length };
+      }
+      return res.json(resp);
     }
     if (schemaKind === 'milestone') {
       let ms = normalizeMilestone(parsed);
@@ -186,8 +241,13 @@ export default async function handler(req, res) {
         ms = normalizeMilestone(parsed);
         if (!ms.definition || !ms.steps.length) return res.status(502).json({ error: 'invalid_milestone_after_repair' });
       }
-      if (aiDebug) { try { console.log('[ai-debug] milestone-result', { steps: (ms.steps||[]).length, repaired }); } catch(_) {} }
-      return res.json({ version: 2, modelUsed: model, repaired, ...ms });
+      if (aiDebug) { try { console.log('[ai-debug] milestone-result', { steps: (ms.steps||[]).length, repaired, modelCallMs, repair1Ms }); } catch(_) {} }
+      const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
+      const resp = { version: 2, modelUsed: model, modelAttempt, repaired, ...ms };
+      if (aiDebug) {
+        resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length };
+      }
+      return res.json(resp);
     }
     if (schemaKind === 'plan' || schemaKind === 'plan_financials') {
       let planObj = normalizePlan(parsed);
@@ -198,7 +258,11 @@ export default async function handler(req, res) {
         if (!planObj || !planObj.title) return res.status(502).json({ error: 'invalid_plan_after_repair' });
       }
       const derived = addPlanDerived(planObj); // includes warnings & projections
-      const baseResp = { version: 4, modelUsed: model, repaired, planVersion: derived.planVersion || 1, plan: derived };
+      const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
+      const baseResp = { version: 4, modelUsed: model, modelAttempt, repaired, planVersion: derived.planVersion || 1, plan: derived };
+      if (aiDebug) {
+        baseResp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length };
+      }
       if (schemaKind === 'plan_financials') {
         // Only return financial slices + warnings to merge client-side
         if (aiDebug) { try { console.log('[ai-debug] plan-financials-result', { warnings: (derived.validationWarnings||[]).length }); } catch(_) {} }
