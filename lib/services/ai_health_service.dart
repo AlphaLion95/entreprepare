@@ -18,6 +18,12 @@ class AiHealthService {
     }
     try {
       final resp = await http.get(Uri.parse(kAiMilestoneEndpoint));
+      // Debug: capture raw body for diagnostics (trim to 220 chars)
+      // (Remove or gate behind a debug flag for production if noisy.)
+      if (resp.body.isNotEmpty) {
+        // ignore: avoid_print
+        print('[AiHealth] status=${resp.statusCode} raw=${resp.body.substring(0, resp.body.length>220?220:resp.body.length)}');
+      }
       if (resp.statusCode != 200) {
         final body = resp.body;
         return AiHealthStatus(
@@ -41,20 +47,25 @@ class AiHealthService {
         );
       }
       int? v = json['version'] is int ? json['version'] as int : int.tryParse(json['version']?.toString() ?? '');
-      bool planSupported;
-      if (json.containsKey('planSupported')) {
-        planSupported = json['planSupported'] == true;
-        // If backend omitted numeric version but explicitly states planSupported, infer minimum compatible version 4
-        if (v == null && planSupported) v = 4;
-      } else {
-        planSupported = (v ?? 0) >= 4;
+      bool hasFlag = json.containsKey('planSupported');
+      bool planSupported = hasFlag ? json['planSupported'] == true : (v ?? 0) >= 4;
+      // Secondary heuristic: if version missing and flag missing but success message matches expected readiness string
+      final msg = json['message']?.toString() ?? '';
+      if (!planSupported && v == null && !hasFlag && msg.toLowerCase().contains('endpoint ready')) {
+        planSupported = true;
+        v = 4; // infer minimum
       }
+      // If flag present but true and version null, infer version 4
+      if (planSupported && v == null) v = 4;
+      // Debug print parsed result
+      // ignore: avoid_print
+      print('[AiHealth] parsed keys=${json.keys.toList()} version=$v planSupported=$planSupported hasFlag=$hasFlag msg="$msg"');
       return AiHealthStatus(
         reachable: true,
         version: v,
         planSupported: planSupported,
-        message: json['message']?.toString(),
-        rawSnippet: null,
+        message: msg,
+        rawSnippet: (v == null || !hasFlag) ? (resp.body.substring(0, resp.body.length>180?180:resp.body.length)) : null,
       );
     } catch (e) {
       return AiHealthStatus(reachable: false, version: null, planSupported: false, message: e.toString(), rawSnippet: null);
