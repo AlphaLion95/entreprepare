@@ -34,7 +34,8 @@ class PlanService {
       final plans = await LocalStore.loadPlans();
       final tLower = title.trim().toLowerCase();
       final match = plans.firstWhere(
-        (p) => (p['titleLower'] ?? p['title']?.toString().toLowerCase()) == tLower,
+        (p) =>
+            (p['titleLower'] ?? p['title']?.toString().toLowerCase()) == tLower,
         orElse: () => {},
       );
       if (match.isEmpty) return null;
@@ -80,7 +81,9 @@ class PlanService {
   Future<List<Plan>> fetchPlans() async {
     if (kAuthDisabled) {
       final raw = await LocalStore.loadPlans();
-      return raw.map((m) => Plan.fromMap(m['id']?.toString() ?? '', m)).toList();
+      return raw
+          .map((m) => Plan.fromMap(m['id']?.toString() ?? '', m))
+          .toList();
     }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return [];

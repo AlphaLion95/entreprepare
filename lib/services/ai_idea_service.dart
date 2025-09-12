@@ -35,7 +35,11 @@ class AiIdeaService {
     if (resp.statusCode == 200) {
       final data = jsonDecode(resp.body);
       if (data is Map && data['ideas'] is List) {
-        final list = (data['ideas'] as List).map((e) => e.toString()).where((e) => e.trim().isNotEmpty).take(12).toList();
+        final list = (data['ideas'] as List)
+            .map((e) => e.toString())
+            .where((e) => e.trim().isNotEmpty)
+            .take(12)
+            .toList();
         if (list.isNotEmpty) return list;
       }
       throw Exception('Malformed AI response');

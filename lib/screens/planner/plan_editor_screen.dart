@@ -620,7 +620,8 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
                               tooltip: 'AI help',
                               icon: const Icon(Icons.lightbulb_outline),
                               onPressed: () async {
-                                final suggestion = await _aiMilestoneService.generate(m.title);
+                                final suggestion = await _aiMilestoneService
+                                    .generate(m.title);
                                 if (!mounted) return;
                                 showModalBottomSheet(
                                   context: context,
@@ -628,14 +629,19 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
                                   isScrollControlled: true,
                                   builder: (_) => Padding(
                                     padding: EdgeInsets.only(
-                                      bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                                      bottom:
+                                          MediaQuery.of(
+                                            context,
+                                          ).viewInsets.bottom +
+                                          16,
                                       left: 16,
                                       right: 16,
                                       top: 8,
                                     ),
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           m.title,
@@ -649,7 +655,9 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
                                         const SizedBox(height: 12),
                                         const Text(
                                           'Suggested steps:',
-                                          style: TextStyle(fontWeight: FontWeight.w600),
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                         const SizedBox(height: 4),
                                         ...suggestion.steps.asMap().entries.map(
@@ -660,7 +668,9 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
                                               radius: 10,
                                               child: Text(
                                                 '${st.key + 1}',
-                                                style: const TextStyle(fontSize: 11),
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                ),
                                               ),
                                             ),
                                             title: Text(st.value),
@@ -687,11 +697,14 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
                                                 });
                                               },
                                               icon: const Icon(Icons.add_task),
-                                              label: const Text('Add steps as milestones'),
+                                              label: const Text(
+                                                'Add steps as milestones',
+                                              ),
                                             ),
                                             const Spacer(),
                                             TextButton(
-                                              onPressed: () => Navigator.pop(context),
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
                                               child: const Text('Close'),
                                             ),
                                           ],

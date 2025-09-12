@@ -10,7 +10,8 @@ class LocalStore {
   static const _aiIdeaCacheKey = 'offline_ai_idea_cache_v1';
   static const _problemSolutionCacheKey = 'offline_problem_solution_cache_v1';
 
-  static Future<SharedPreferences> get _p async => SharedPreferences.getInstance();
+  static Future<SharedPreferences> get _p async =>
+      SharedPreferences.getInstance();
 
   // Plans
   static Future<List<Map<String, dynamic>>> loadPlans() async {
@@ -19,7 +20,9 @@ class LocalStore {
     if (raw == null) return [];
     final decoded = jsonDecode(raw);
     if (decoded is List) {
-      return decoded.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map)).toList();
+      return decoded
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
     }
     return [];
   }
@@ -109,7 +112,9 @@ class LocalStore {
     return {};
   }
 
-  static Future<void> saveProblemSolutionCache(Map<String, dynamic> cache) async {
+  static Future<void> saveProblemSolutionCache(
+    Map<String, dynamic> cache,
+  ) async {
     final prefs = await _p;
     await prefs.setString(_problemSolutionCacheKey, jsonEncode(cache));
   }

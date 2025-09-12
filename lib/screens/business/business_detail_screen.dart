@@ -66,7 +66,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.check_circle_outline, size: 18, color: Colors.green),
+                const Icon(
+                  Icons.check_circle_outline,
+                  size: 18,
+                  color: Colors.green,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -80,7 +84,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       }
     });
     if (reasons.isEmpty) {
-      reasons.add(const Text('This business may still suit you based on transferable skills or interest.'));
+      reasons.add(
+        const Text(
+          'This business may still suit you based on transferable skills or interest.',
+        ),
+      );
     }
     return reasons;
   }
@@ -106,10 +114,19 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
             height: headerHeight,
             width: double.infinity,
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [Colors.blue.shade600, Colors.blue.shade300]),
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
+              gradient: LinearGradient(
+                colors: [Colors.blue.shade600, Colors.blue.shade300],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(18),
+              ),
             ),
-            padding: EdgeInsets.only(top: topPadding, left: 16, right: 16, bottom: 12),
+            padding: EdgeInsets.only(
+              top: topPadding,
+              left: 16,
+              right: 16,
+              bottom: 12,
+            ),
             child: Row(
               children: [
                 Hero(
@@ -118,8 +135,14 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     radius: 44,
                     backgroundColor: Colors.white24,
                     child: Text(
-                      (business.title.isNotEmpty ? business.title[0].toUpperCase() : '?'),
-                      style: const TextStyle(fontSize: 28, color: Colors.white, fontWeight: FontWeight.bold),
+                      (business.title.isNotEmpty
+                          ? business.title[0].toUpperCase()
+                          : '?'),
+                      style: const TextStyle(
+                        fontSize: 28,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -131,7 +154,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     children: [
                       Text(
                         business.title,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -147,16 +174,40 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         children: [
                           if (business.cost.isNotEmpty)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(12)),
-                              child: Text('Cost: ${business.cost}', style: const TextStyle(color: Colors.white, fontSize: 13)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white24,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'Cost: ${business.cost}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                ),
+                              ),
                             ),
                           const SizedBox(width: 8),
                           if (business.earnings.isNotEmpty)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(12)),
-                              child: Text('Earnings: ${business.earnings}', style: const TextStyle(color: Colors.white, fontSize: 13)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white24,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'Earnings: ${business.earnings}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                ),
+                              ),
                             ),
                         ],
                       ),
@@ -172,60 +223,97 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Why it suits you', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Why it suits you',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 8),
                   ..._buildSuitability(),
                   const Divider(height: 28),
-                  const Text('Estimated startup cost', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Estimated startup cost',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 8),
                   Card(
                     elevation: 1,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(12),
-                      child: Text(business.cost.isNotEmpty ? business.cost : 'Not specified'),
+                      child: Text(
+                        business.cost.isNotEmpty
+                            ? business.cost
+                            : 'Not specified',
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text('Potential earnings range', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Potential earnings range',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 8),
                   Card(
                     elevation: 1,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(12),
-                      child: Text(business.earnings.isNotEmpty ? business.earnings : 'Not specified'),
+                      child: Text(
+                        business.earnings.isNotEmpty
+                            ? business.earnings
+                            : 'Not specified',
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text('Initial steps to start', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Initial steps to start',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 8),
                   if (business.initialSteps.isNotEmpty)
                     Card(
                       elevation: 1,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: List.generate(business.initialSteps.length, (i) {
-                            final step = business.initialSteps[i];
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 6),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  CircleAvatar(
-                                    radius: 12,
-                                    backgroundColor: Colors.blue.shade50,
-                                    child: Text('${i + 1}', style: const TextStyle(fontSize: 12, color: Colors.blue)),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(child: Text(step)),
-                                ],
-                              ),
-                            );
-                          }),
+                          children: List.generate(
+                            business.initialSteps.length,
+                            (i) {
+                              final step = business.initialSteps[i];
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 6,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 12,
+                                      backgroundColor: Colors.blue.shade50,
+                                      child: Text(
+                                        '${i + 1}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(child: Text(step)),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
                     )
@@ -239,22 +327,38 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           onPressed: () async {
                             if (kAuthDisabled) {
                               final wasFav = _offlineFavorite;
-                              await _businessService.toggleFavoriteOffline(business);
+                              await _businessService.toggleFavoriteOffline(
+                                business,
+                              );
                               await _loadOfflineFav();
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(wasFav ? 'Removed from saved' : 'Saved to favorites')),
+                                  SnackBar(
+                                    content: Text(
+                                      wasFav
+                                          ? 'Removed from saved'
+                                          : 'Saved to favorites',
+                                    ),
+                                  ),
                                 );
                               }
                               return;
                             }
                             final user = FirebaseAuth.instance.currentUser;
                             if (user == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please sign in to save')));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please sign in to save'),
+                                ),
+                              );
                               return;
                             }
                             final favId = business.docId ?? business.title;
-                            final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('favorites').doc(favId);
+                            final docRef = FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(user.uid)
+                                .collection('favorites')
+                                .doc(favId);
                             final payload = {
                               'businessId': favId,
                               'title': business.title,
@@ -270,21 +374,40 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                               '__savedAt': FieldValue.serverTimestamp(),
                             };
                             try {
-                              await docRef.set(payload, SetOptions(merge: true));
+                              await docRef.set(
+                                payload,
+                                SetOptions(merge: true),
+                              );
                               if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved to favorites')));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Saved to favorites'),
+                                  ),
+                                );
                               }
                             } catch (e) {
                               if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Save failed: $e')),
+                                );
                               }
                             }
                           },
-                          icon: Icon(kAuthDisabled
-                              ? (_offlineFavorite ? Icons.bookmark : Icons.bookmark_add_outlined)
-                              : Icons.bookmark_add_outlined),
-                          label: Text(kAuthDisabled ? (_offlineFavorite ? 'Saved' : 'Save') : 'Save'),
-                          style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                          icon: Icon(
+                            kAuthDisabled
+                                ? (_offlineFavorite
+                                      ? Icons.bookmark
+                                      : Icons.bookmark_add_outlined)
+                                : Icons.bookmark_add_outlined,
+                          ),
+                          label: Text(
+                            kAuthDisabled
+                                ? (_offlineFavorite ? 'Saved' : 'Save')
+                                : 'Save',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -293,7 +416,10 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           onPressed: () async {
                             final result = await Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => PlanEditorScreen(business: business)),
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    PlanEditorScreen(business: business),
+                              ),
                             );
                             if (result == true) {
                               // Optionally handle after plan creation
@@ -301,7 +427,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           },
                           icon: const Icon(Icons.playlist_add_check),
                           label: const Text('Start'),
-                          style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
                         ),
                       ),
                     ],

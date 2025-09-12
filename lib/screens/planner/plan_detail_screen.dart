@@ -774,107 +774,113 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: CheckboxListTile(
-                  value: m.done,
-                  onChanged: (v) => _toggleMilestone(idx, v),
-                  title: Text(m.title),
-                  secondary: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: 'AI help',
-                        icon: const Icon(Icons.lightbulb_outline),
-                        onPressed: () async {
-                          final suggestion = await _aiMilestoneService.generate(m.title);
-                          if (!mounted) return;
-                          showModalBottomSheet(
-                            context: context,
-                            showDragHandle: true,
-                            isScrollControlled: true,
-                            builder: (_) => Padding(
-                              padding: EdgeInsets.only(
-                                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-                                left: 16,
-                                right: 16,
-                                top: 8,
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    m.title,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(suggestion.definition),
-                                  const SizedBox(height: 12),
-                                  const Text(
-                                    'Suggested steps:',
-                                    style: TextStyle(fontWeight: FontWeight.w600),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  ...suggestion.steps.asMap().entries.map(
-                                    (st) => ListTile(
-                                      dense: true,
-                                      contentPadding: EdgeInsets.zero,
-                                      leading: CircleAvatar(
-                                        radius: 10,
-                                        child: Text(
-                                          '${st.key + 1}',
-                                          style: const TextStyle(fontSize: 11),
-                                        ),
-                                      ),
-                                      title: Text(st.value),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      TextButton.icon(
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                          setState(() {
-                                            final insertAt = idx + 1;
-                                            _plan.milestones.insertAll(
-                                              insertAt,
-                                              suggestion.steps.map(
-                                                (s) => Milestone(
-                                                  id: const Uuid().v4(),
-                                                  title: s,
-                                                ),
-                                              ),
-                                            );
-                                          });
-                                        },
-                                        icon: const Icon(Icons.add_task),
-                                        label: const Text('Add steps as milestones'),
-                                      ),
-                                      const Spacer(),
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text('Close'),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                value: m.done,
+                onChanged: (v) => _toggleMilestone(idx, v),
+                title: Text(m.title),
+                secondary: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'AI help',
+                      icon: const Icon(Icons.lightbulb_outline),
+                      onPressed: () async {
+                        final suggestion = await _aiMilestoneService.generate(
+                          m.title,
+                        );
+                        if (!mounted) return;
+                        showModalBottomSheet(
+                          context: context,
+                          showDragHandle: true,
+                          isScrollControlled: true,
+                          builder: (_) => Padding(
+                            padding: EdgeInsets.only(
+                              bottom:
+                                  MediaQuery.of(context).viewInsets.bottom + 16,
+                              left: 16,
+                              right: 16,
+                              top: 8,
                             ),
-                          );
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => _editMilestoneTitle(idx),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () => _removeMilestone(idx),
-                      ),
-                    ],
-                  )),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  m.title,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(suggestion.definition),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Suggested steps:',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 4),
+                                ...suggestion.steps.asMap().entries.map(
+                                  (st) => ListTile(
+                                    dense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    leading: CircleAvatar(
+                                      radius: 10,
+                                      child: Text(
+                                        '${st.key + 1}',
+                                        style: const TextStyle(fontSize: 11),
+                                      ),
+                                    ),
+                                    title: Text(st.value),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    TextButton.icon(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        setState(() {
+                                          final insertAt = idx + 1;
+                                          _plan.milestones.insertAll(
+                                            insertAt,
+                                            suggestion.steps.map(
+                                              (s) => Milestone(
+                                                id: const Uuid().v4(),
+                                                title: s,
+                                              ),
+                                            ),
+                                          );
+                                        });
+                                      },
+                                      icon: const Icon(Icons.add_task),
+                                      label: const Text(
+                                        'Add steps as milestones',
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Close'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () => _editMilestoneTitle(idx),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () => _removeMilestone(idx),
+                    ),
+                  ],
+                ),
+              ),
             );
           }),
           const SizedBox(height: 20),

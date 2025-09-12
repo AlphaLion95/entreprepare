@@ -10,12 +10,11 @@ class MilestoneSuggestion {
   factory MilestoneSuggestion.fromMap(Map<String, dynamic> m) =>
       MilestoneSuggestion(
         definition: (m['definition'] ?? '').toString(),
-        steps: (m['steps'] as List<dynamic>? ?? []).map((e) => e.toString()).toList(),
+        steps: (m['steps'] as List<dynamic>? ?? [])
+            .map((e) => e.toString())
+            .toList(),
       );
-  Map<String, dynamic> toMap() => {
-        'definition': definition,
-        'steps': steps,
-      };
+  Map<String, dynamic> toMap() => {'definition': definition, 'steps': steps};
 }
 
 class AiMilestoneService {

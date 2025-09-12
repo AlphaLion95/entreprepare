@@ -62,7 +62,8 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
       final msg = e.toString();
       String friendly = 'Failed: $msg';
       if (msg.contains('Remote AI disabled')) {
-        friendly = 'AI disabled. Set your deployed function URLs in ai_config.dart (kAiIdeasEndpoint, enable kAiRemoteEnabled) then rebuild.';
+        friendly =
+            'AI disabled. Set your deployed function URLs in ai_config.dart (kAiIdeasEndpoint, enable kAiRemoteEnabled) then rebuild.';
       }
       setState(() => _ideaError = friendly);
     } finally {
@@ -85,7 +86,8 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
       final msg = e.toString();
       String friendly = 'Failed: $msg';
       if (msg.contains('Remote AI disabled')) {
-        friendly = 'AI disabled. Configure endpoints (kAiSolutionsEndpoint, kAiRemoteEnabled) and redeploy.';
+        friendly =
+            'AI disabled. Configure endpoints (kAiSolutionsEndpoint, kAiRemoteEnabled) and redeploy.';
       }
       setState(() => _solutionError = friendly);
     } finally {
@@ -111,14 +113,14 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
     try {
       final id = await _planService.createPlan(plan);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Plan created: $id')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Plan created: $id')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to create plan: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to create plan: $e')));
     }
   }
 
@@ -143,11 +145,14 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
             ),
           ),
           const SizedBox(height: 12),
-            if (_loadingIdeas) const LinearProgressIndicator(minHeight: 3),
+          if (_loadingIdeas) const LinearProgressIndicator(minHeight: 3),
           if (_ideaError.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Text(_ideaError, style: const TextStyle(color: Colors.red)),
+              child: Text(
+                _ideaError,
+                style: const TextStyle(color: Colors.red),
+              ),
             ),
           const SizedBox(height: 8),
           Expanded(
@@ -200,13 +205,18 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
         children: [
           Card(
             elevation: 1,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Context', style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    'Context',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 8),
                   SizedBox(
                     height: 140,
@@ -216,7 +226,8 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
                       expands: true,
                       textAlignVertical: TextAlignVertical.top,
                       decoration: const InputDecoration(
-                        hintText: 'Describe your business, current challenges, goals, metrics, users...\nYou can paste multiple paragraphs.',
+                        hintText:
+                            'Describe your business, current challenges, goals, metrics, users...\nYou can paste multiple paragraphs.',
                         border: OutlineInputBorder(),
                         isDense: true,
                         alignLabelWithHint: true,
@@ -238,10 +249,13 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
                         tooltip: 'Clear',
                         onPressed: () {
                           _contextCtl.clear();
-                          setState(() { _solutions.clear(); _solutionError=''; });
+                          setState(() {
+                            _solutions.clear();
+                            _solutionError = '';
+                          });
                         },
                         icon: const Icon(Icons.clear_all),
-                      )
+                      ),
                     ],
                   ),
                   if (_loadingSolutions)
@@ -252,9 +266,14 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
                   if (_solutionError.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: Text(_solutionError, style: const TextStyle(color: Colors.red)),
+                      child: Text(
+                        _solutionError,
+                        style: const TextStyle(color: Colors.red),
+                      ),
                     ),
-                  if (!_loadingSolutions && _solutions.isEmpty && _solutionError.isEmpty)
+                  if (!_loadingSolutions &&
+                      _solutions.isEmpty &&
+                      _solutionError.isEmpty)
                     const Padding(
                       padding: EdgeInsets.only(top: 8),
                       child: Text(
@@ -287,15 +306,20 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const SizedBox(height: 8),
-                                  ...s.steps.asMap().entries.map((e) => ListTile(
-                                        dense: true,
-                                        contentPadding: EdgeInsets.zero,
-                                        leading: CircleAvatar(
-                                          radius: 11,
-                                          child: Text('${e.key + 1}', style: const TextStyle(fontSize: 11)),
+                                  ...s.steps.asMap().entries.map(
+                                    (e) => ListTile(
+                                      dense: true,
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: CircleAvatar(
+                                        radius: 11,
+                                        child: Text(
+                                          '${e.key + 1}',
+                                          style: const TextStyle(fontSize: 11),
                                         ),
-                                        title: Text(e.value),
-                                      )),
+                                      ),
+                                      title: Text(e.value),
+                                    ),
+                                  ),
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: TextButton.icon(
@@ -303,16 +327,16 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
                                       icon: const Icon(Icons.add_task),
                                       label: const Text('Add to Plan'),
                                     ),
-                                  )
+                                  ),
                                 ],
                               ),
-                            )
+                            ),
                           ],
                         ),
                       );
                     },
                   ),
-          )
+          ),
         ],
       ),
     );
@@ -333,10 +357,7 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
       ),
       body: TabBarView(
         controller: _tab,
-        children: [
-          _buildIdeasTab(),
-          _buildProblemSolverTab(),
-        ],
+        children: [_buildIdeasTab(), _buildProblemSolverTab()],
       ),
     );
   }

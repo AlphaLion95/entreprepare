@@ -84,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => _loading = true);
     }
 
-  // load saved favorites first
+    // load saved favorites first
     await _loadSavedBusinesses();
     // load plans and settings
     await _loadPlans();
@@ -95,7 +95,10 @@ class _HomeScreenState extends State<HomeScreen> {
         Map<String, dynamic> answers = {};
         if (quizCompleted) {
           answers = await LocalStore.loadQuizAnswers();
-          final topBusinesses = await _businessService.getTop3(answers, topN: 3);
+          final topBusinesses = await _businessService.getTop3(
+            answers,
+            topN: 3,
+          );
           if (mounted) {
             setState(() {
               _quizCompleted = quizCompleted;
@@ -106,16 +109,18 @@ class _HomeScreenState extends State<HomeScreen> {
           if (mounted) setState(() => _quizCompleted = false);
         }
       } catch (_) {}
-  if (showSpinner && mounted) setState(() => _loading = false);
+      if (showSpinner && mounted) setState(() => _loading = false);
       return;
     }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-  if (showSpinner && mounted) setState(() => _loading = false);
+      if (showSpinner && mounted) setState(() => _loading = false);
       return;
     }
     try {
-      final quizCompleted = await _businessService.fetchUserQuizStatus(user.uid);
+      final quizCompleted = await _businessService.fetchUserQuizStatus(
+        user.uid,
+      );
       Map<String, dynamic> answers = {};
       List<Business> topBusinesses = [];
       if (quizCompleted) {
@@ -123,7 +128,8 @@ class _HomeScreenState extends State<HomeScreen> {
             .collection('users')
             .doc(user.uid)
             .get();
-        answers = (userDoc.data()?['quizAnswers'] ?? {}) as Map<String, dynamic>;
+        answers =
+            (userDoc.data()?['quizAnswers'] ?? {}) as Map<String, dynamic>;
         topBusinesses = await _businessService.getTop3(answers, topN: 3);
       }
       if (mounted) {
@@ -368,8 +374,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-      : RefreshIndicator(
-        onRefresh: () => _initializeHome(showSpinner: false),
+          : RefreshIndicator(
+              onRefresh: () => _initializeHome(showSpinner: false),
               child: ListView(
                 padding: const EdgeInsets.only(top: 16, bottom: 32),
                 children: [
