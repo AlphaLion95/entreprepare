@@ -160,20 +160,37 @@ export default async function handler(req, res) {
 
     if (!parsed) {
       const ok = await attemptRepair('initial_parse_failed');
-      if (!ok) return res.status(502).json({ error: 'parse_failed', raw: truncate(content, 500) });
+      if (!ok) {
+        // For ideas we guarantee a fallback response instead of hard error
+        if (schemaKind === 'ideas') {
+          const safeLimit = sanitizeLimit(limit);
+          const ideas = heuristicIdeasFallback(query, safeLimit, true);
+          const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
+            return res.json({
+              version: 3,
+              modelUsed: model,
+              modelAttempt,
+              repaired: false,
+              fallbackUsed: true,
+              ideas
+            });
+        }
+        return res.status(502).json({ error: 'parse_failed', raw: truncate(content, 500) });
+      }
     }
 
     // Shape enforcement with possible repair
     if (schemaKind === 'ideas') {
-      let ideas = normalizeIdeas(parsed, limit);
+      const safeLimit = sanitizeLimit(limit);
+      let ideas = normalizeIdeas(parsed, safeLimit);
       let fallbackUsed = false;
       if (!ideas.length) {
         const ok = await attemptRepair('empty_ideas_list');
         if (!ok) {
-          ideas = heuristicIdeasFallback(query, limit);
+          ideas = heuristicIdeasFallback(query, safeLimit, true);
           fallbackUsed = true;
         } else {
-          ideas = normalizeIdeas(parsed, limit);
+          ideas = normalizeIdeas(parsed, safeLimit);
           // SECOND repair attempt (ideas only) if still empty
           if (!ideas.length) {
             // manual second repair ignoring single-attempt guard
@@ -193,15 +210,20 @@ export default async function handler(req, res) {
                 if (parsed2 && Array.isArray(parsed2.ideas) && parsed2.ideas.length) {
                   content = repairedContent2;
                   parsed = parsed2;
-                  ideas = normalizeIdeas(parsed2, limit);
+                  ideas = normalizeIdeas(parsed2, safeLimit);
                 }
               } catch (_) {
                 repair2Ms = Date.now() - tR20;
               }
             }
-            if (!ideas.length) { ideas = heuristicIdeasFallback(query, limit); fallbackUsed = true; }
+            if (!ideas.length) { ideas = heuristicIdeasFallback(query, safeLimit, true); fallbackUsed = true; }
           }
         }
+      }
+      // Final hard guard: never return empty array
+      if (!ideas.length) {
+        ideas = heuristicIdeasFallback(query, safeLimit, true);
+        fallbackUsed = true;
       }
       if (aiDebug) { try { console.log('[ai-debug] ideas-result', { count: ideas.length, repaired, fallbackUsed, modelCallMs, repair1Ms, repair2Ms }); } catch(_) {} }
       const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
@@ -426,7 +448,7 @@ function safeParse(text) {
 }
 
 function normalizeIdeas(obj, limitRaw) {
-  const limit = Math.min(parseInt(limitRaw || 8, 10), 12);
+  const limit = sanitizeLimit(limitRaw);
   let ideas = Array.isArray(obj.ideas) ? obj.ideas : [];
   if (!ideas.length) return [];
   return ideas.map(i => String(i).trim()).filter(Boolean).slice(0, limit);
@@ -566,7 +588,7 @@ function incrementRate(ip, now) {
 // Heuristic fallback generator when model fails to return ideas
 function heuristicIdeasFallback(query, limitRaw) {
   const base = (String(query||'').trim() || 'business').toLowerCase();
-  const limit = Math.min(parseInt(limitRaw || 8, 10), 12);
+  const limit = sanitizeLimit(limitRaw);
   const hasCheap = /(cheap|low cost|budget)/.test(base);
   const hasFood = /food/.test(base);
   const hasProduct = /product/.test(base);
@@ -587,7 +609,9 @@ function heuristicIdeasFallback(query, limitRaw) {
     if (uniq.size >= limit) break;
     uniq.add(capitalize(composeIdea(base, s, { hasCheap, hasFood, hasProduct })));
   }
-  return Array.from(uniq).slice(0, limit);
+  let arr = Array.from(uniq);
+  if (!arr.length) arr = ['Simple local service startup'];
+  return arr.slice(0, limit || 8);
 }
 
 function composeIdea(base, seed, flags) {
@@ -604,3 +628,11 @@ function composeIdea(base, seed, flags) {
 }
 
 function capitalize(str) { return str ? str.charAt(0).toUpperCase() + str.slice(1) : str; }
+
+// Ensure limit is a positive integer within max, else default
+function sanitizeLimit(raw, def = 8, max = 12) {
+  let n = parseInt(raw, 10);
+  if (!isFinite(n) || n <= 0) n = def;
+  if (n > max) n = max;
+  return n;
+}
