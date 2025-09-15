@@ -5,14 +5,14 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
   {
     'id': 'local-sba-business-plan',
     'title': 'How to Write a Business Plan',
-  'summary': 'Step-by-step guide to writing a business plan.',
-  'tags': ['Planning', 'Business Plan'],
-  'url':
-    'https://www.bplans.com/articles/startup/how-to-write-a-business-plan/',
+    'summary': 'Step-by-step guide to writing a business plan.',
+    'tags': ['Planning', 'Business Plan'],
+    'url':
+        'https://startupnation.com/start-your-business/how-to-write-a-business-plan/',
     'coverImage':
         'https://www.profitableventure.com/wp-content/uploads/2023/02/Write-Business-Plan.jpg',
     'category': 'Article',
-  'author': 'Bplans',
+    'author': 'StartupNation',
     'createdAt':
         DateTime.now().millisecondsSinceEpoch - 1000 * 60 * 60 * 24 * 7,
   },
@@ -30,17 +30,18 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
         DateTime.now().millisecondsSinceEpoch - 1000 * 60 * 60 * 24 * 96,
   },
   {
-  'id': 'local-irs-apply-ein',
-  'title': 'Philippines Tax ID Number (TIN) Guide',
-  'summary': 'How to find and validate a TIN in the Philippines.',
-  'tags': ['Legal', 'Tax', 'PH'],
-  'url': 'https://taxdo.com/resources/global-tax-id-validation-guide/philippines',
-  'coverImage':
-    'https://cdn.shopify.com/s/files/1/0070/7032/articles/tax-id-number_5a461b4d-abe2-4aee-bfaf-19b0ecce8d6d.png?v=1729517005',
-  'category': 'Article',
-  'author': 'Taxdo',
-  'createdAt':
-    DateTime.now().millisecondsSinceEpoch - 1000 * 60 * 60 * 24 * 100,
+    'id': 'local-irs-apply-ein',
+    'title': 'Philippines Tax ID Number (TIN) Guide',
+    'summary': 'How to find and validate a TIN in the Philippines.',
+    'tags': ['Legal', 'Tax', 'PH'],
+    'url':
+        'https://taxdo.com/resources/global-tax-id-validation-guide/philippines',
+    'coverImage':
+        'https://cdn.shopify.com/s/files/1/0070/7032/articles/tax-id-number_5a461b4d-abe2-4aee-bfaf-19b0ecce8d6d.png?v=1729517005',
+    'category': 'Article',
+    'author': 'Taxdo',
+    'createdAt':
+        DateTime.now().millisecondsSinceEpoch - 1000 * 60 * 60 * 24 * 100,
   },
   {
     'id': 'local-quickbooks-accounting-basics',
@@ -62,7 +63,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary':
         'How CRMs help manage sales pipelines and customer relationships.',
     'tags': ['Sales', 'CRM'],
-  'url': 'https://www.pipedrive.com/en/products/what-is-crm',
+    'url': 'https://www.pipedrive.com/en/products/what-is-crm',
     'coverImage':
         'https://www.xcitium.com/blog/wp-content/uploads/2025/08/whats-a-crm.png',
     'category': 'Article',
@@ -75,9 +76,10 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'title': 'Customer Service 101: Fundamentals & Best Practices',
     'summary': 'Deliver great support to keep customers happy and loyal.',
     'tags': ['Operations', 'Customer Service'],
-  'url': 'https://www.cca-global.com/content/latest/article/2023/03/customer-service-101-what-it-is--9-best-practices-384/',
-  'coverImage':
-    'https://www.cca-global.com/ckfinder/userfiles/files/WEBSITE_2020/news/images/CS%20101%20banner%20image.png',
+    'url':
+        'https://www.cca-global.com/content/latest/article/2023/03/customer-service-101-what-it-is--9-best-practices-384/',
+    'coverImage':
+        'https://www.cca-global.com/ckfinder/userfiles/files/WEBSITE_2020/news/images/CS%20101%20banner%20image.png',
     'category': 'Article',
     'author': 'Zendesk',
     'createdAt':
@@ -114,8 +116,10 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'title': 'Food Safety Basics for Small Businesses',
     'summary': 'Key practices to keep customers safe if selling food.',
     'tags': ['Operations', 'Compliance', 'Food'],
-    'url': 'https://archive.wwf.org.ph/resource-center/story-archives-2020/food-safety/',
-    'coverImage': 'https://archive.wwf.org.ph/wp-content/uploads/2020/06/image1.jpg',
+    'url':
+        'https://archive.wwf.org.ph/resource-center/story-archives-2020/food-safety/',
+    'coverImage':
+        'https://archive.wwf.org.ph/wp-content/uploads/2020/06/image1.jpg',
     'category': 'Article',
     'author': 'CDC',
     'createdAt':
@@ -126,8 +130,9 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'title': 'Lean Canvas Explained in 15 Minutes',
     'summary': 'A quick overview of the Lean Canvas framework.',
     'tags': ['Planning', 'Video'],
-  'videoUrl': 'https://www.youtube.com/watch?v=7o8uYdUaFR4',
-    'coverImage': 'https://www.process.st/wp-content/uploads/2024/02/Lean-canvas-example-customer-profile.png',
+    'videoUrl': 'https://www.youtube.com/watch?v=7o8uYdUaFR4',
+    'coverImage':
+        'https://www.process.st/wp-content/uploads/2024/02/Lean-canvas-example-customer-profile.png',
     'category': 'Video',
     'author': 'LeanStack (YouTube)',
     'createdAt':
@@ -147,11 +152,13 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
   {
     'id': 'local-sba-fund-business',
     'title': 'Fund Your Business',
-    'summary': 'Funding strategies and options for business expansion in the Philippines.',
+    'summary':
+        'Funding strategies and options for business expansion in the Philippines.',
     'tags': ['Funding', 'Finance'],
-  'url':
-    'https://tonikbank.com/blog/top-strategies-and-options-funding-your-business-expansion-plan-philippines',
-    'coverImage': 'https://www.upflip.com/wp-content/uploads/2022/02/how-to-fund-a-business-1.jpg',
+    'url':
+        'https://tonikbank.com/blog/top-strategies-and-options-funding-your-business-expansion-plan-philippines',
+    'coverImage':
+        'https://www.upflip.com/wp-content/uploads/2022/02/how-to-fund-a-business-1.jpg',
     'category': 'Article',
     'author': 'Tonik Bank',
     'createdAt':
@@ -160,13 +167,13 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
   {
     'id': 'local-sba-marketing-plan',
     'title': 'Write Your Marketing Plan',
-  'summary': 'Define your marketing strategy, channels, and KPIs.',
-  'tags': ['Marketing', 'Go-To-Market'],
-  'url':
-    'https://blog.hubspot.com/marketing/marketing-plan',
-    'coverImage': 'https://smallbusiness-staging.s3.amazonaws.com/uploads/2018/08/Marketing-plan-e1535441902712.jpeg',
+    'summary': 'Define your marketing strategy, channels, and KPIs.',
+    'tags': ['Marketing', 'Go-To-Market'],
+    'url': 'https://blog.hubspot.com/marketing/marketing-plan',
+    'coverImage':
+        'https://smallbusiness-staging.s3.amazonaws.com/uploads/2018/08/Marketing-plan-e1535441902712.jpeg',
     'category': 'Article',
-  'author': 'HubSpot',
+    'author': 'HubSpot',
     'createdAt':
         DateTime.now().millisecondsSinceEpoch - 1000 * 60 * 60 * 24 * 27,
   },
@@ -176,7 +183,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'Browse hundreds of sample business plans by industry.',
     'tags': ['Business Plan', 'Templates'],
     'url': 'https://www.bplans.com/sample-business-plans/',
-    'coverImage': 'https://web-cdn.paloalto.com/liveplan/wistia/wistia-sbp.jpeg?format=auto&width=736&height=414',
+    'coverImage':
+        'https://web-cdn.paloalto.com/liveplan/wistia/wistia-sbp.jpeg?format=auto&width=736&height=414',
     'category': 'Article',
     'author': 'Bplans',
     'createdAt':
@@ -188,7 +196,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'Common pricing models and how to choose yours.',
     'tags': ['Pricing', 'Revenue'],
     'url': 'https://www.shopify.com/blog/pricing-strategies',
-    'coverImage': 'https://www.orbacloudcfo.com/wp-content/uploads/2022/03/how-to-set-your-prices-1-768x512-1.jpg',
+    'coverImage':
+        'https://www.orbacloudcfo.com/wp-content/uploads/2022/03/how-to-set-your-prices-1-768x512-1.jpg',
     'category': 'Article',
     'author': 'Shopify',
     'createdAt':
@@ -211,8 +220,10 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'title': 'How to Start a Business',
     'summary': 'Step-by-step guide to starting a business.',
     'tags': ['Getting Started', 'Operations'],
-    'url': 'https://www.businessnewsdaily.com/4686-how-to-start-a-business.html',
-    'coverImage': 'https://www.intelligenthq.com/wp-content/uploads/2018/05/start-business.jpg',
+    'url':
+        'https://www.businessnewsdaily.com/4686-how-to-start-a-business.html',
+    'coverImage':
+        'https://www.intelligenthq.com/wp-content/uploads/2018/05/start-business.jpg',
     'category': 'Article',
     'author': 'Business News Daily',
     'createdAt':
@@ -225,7 +236,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'tags': ['Finance', 'Margins', 'COGS'],
     'url':
         'https://www.investopedia.com/ask/answers/071314/what-difference-between-margin-and-markup.asp',
-    'coverImage': 'https://www.cin7.com/hs-fs/hubfs/Imported%20sitepage%20images/Cin7-markup-vs-margin-difference.jpg?width=1000&height=602&name=Cin7-markup-vs-margin-difference.jpg',
+    'coverImage':
+        'https://www.cin7.com/hs-fs/hubfs/Imported%20sitepage%20images/Cin7-markup-vs-margin-difference.jpg?width=1000&height=602&name=Cin7-markup-vs-margin-difference.jpg',
     'category': 'Article',
     'author': 'Investopedia',
     'createdAt':
@@ -278,11 +290,13 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
   {
     'id': 'local-sba-market-research',
     'title': 'Market Research and Competitive Analysis',
-    'summary': 'How to research your market and analyze competitors (Philippines focus).',
+    'summary':
+        'How to research your market and analyze competitors (Philippines focus).',
     'tags': ['Market Research', 'Validation'],
     'url':
         'https://www.philippinesmarketresearch.com/services/competitor-research',
-    'coverImage': 'https://images.squarespace-cdn.com/content/v1/5550bf8de4b0be0d773f8288/1737548630568-0XCH8D89MLS2XCR6O4G4/Market+Research+and+Competitive+Analysis.jpg?format=1000w',
+    'coverImage':
+        'https://images.squarespace-cdn.com/content/v1/5550bf8de4b0be0d773f8288/1737548630568-0XCH8D89MLS2XCR6O4G4/Market+Research+and+Competitive+Analysis.jpg?format=1000w',
     'category': 'Article',
     'author': 'Philippines Market Research',
     'createdAt':
@@ -293,9 +307,9 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'title': 'Calculate Your Startup Costs',
     'summary': 'Estimate startup expenses and plan your budget.',
     'tags': ['Finance', 'Costs'],
-    'url':
-        'https://www.planprojections.com/projections/start-up-expenses/',
-    'coverImage': 'https://static-web.upmetrics.co/wp-content/uploads/2024/03/21141048/calculate-business-startup-costs-01-2.png',
+    'url': 'https://www.planprojections.com/projections/start-up-expenses/',
+    'coverImage':
+        'https://static-web.upmetrics.co/wp-content/uploads/2024/03/21141048/calculate-business-startup-costs-01-2.png',
     'category': 'Article',
     'author': 'Plan Projections',
     'createdAt':
@@ -320,7 +334,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'A beginner-friendly walkthrough to launch a business.',
     'tags': ['Getting Started', 'Operations'],
     'url': 'https://www.shopify.com/blog/how-to-start-a-business',
-    'coverImage': 'https://techhelp.ca/wp-content/uploads/2024/10/8-Steps-for-Success-1024x536.png',
+    'coverImage':
+        'https://techhelp.ca/wp-content/uploads/2024/10/8-Steps-for-Success-1024x536.png',
     'category': 'Article',
     'author': 'Shopify',
     'createdAt':
@@ -332,7 +347,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'Practical methods for market research with examples.',
     'tags': ['Market Research', 'Validation'],
     'url': 'https://www.shopify.com/blog/market-research',
-    'coverImage': 'https://www.relevantinsights.com/wp-content/uploads/2021/06/Market-Research-Process.png',
+    'coverImage':
+        'https://www.relevantinsights.com/wp-content/uploads/2021/06/Market-Research-Process.png',
     'category': 'Article',
     'author': 'Shopify',
     'createdAt':
@@ -344,7 +360,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'A modern guide with templates to create business plans.',
     'tags': ['Business Plan', 'Templates'],
     'url': 'https://blog.hubspot.com/marketing/business-plan',
-    'coverImage': 'https://virtuzone.com/wp-content/uploads/2023/12/one-page-business-plan.jpg',
+    'coverImage':
+        'https://virtuzone.com/wp-content/uploads/2023/12/one-page-business-plan.jpg',
     'category': 'Article',
     'author': 'HubSpot',
     'createdAt':
@@ -356,7 +373,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'How to research and build accurate customer personas.',
     'tags': ['Persona', 'Marketing'],
     'url': 'https://blog.hubspot.com/marketing/buyer-persona-research',
-    'coverImage': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRqhPZEjDzr-ueRHelkBlQTDiWPW_BN2A1aaA&s',
+    'coverImage':
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRqhPZEjDzr-ueRHelkBlQTDiWPW_BN2A1aaA&s',
     'category': 'Article',
     'author': 'HubSpot',
     'createdAt':
