@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:math';
 
 class LocalStore {
   static const _plansKey = 'offline_plans_v1';
@@ -9,6 +10,8 @@ class LocalStore {
   static const _favoritesKey = 'offline_favorites_v1';
   static const _aiIdeaCacheKey = 'offline_ai_idea_cache_v1';
   static const _problemSolutionCacheKey = 'offline_problem_solution_cache_v1';
+  static const _clientIdKey = 'offline_client_id_v1';
+  static const _learnPreviewCacheKey = 'offline_learn_preview_cache_v1';
 
   static Future<SharedPreferences> get _p async =>
       SharedPreferences.getInstance();
@@ -117,5 +120,76 @@ class LocalStore {
   ) async {
     final prefs = await _p;
     await prefs.setString(_problemSolutionCacheKey, jsonEncode(cache));
+  }
+
+  // Learn preview cache: url -> { "v": text, "t": epochMillis }
+  static Future<Map<String, dynamic>> loadLearnPreviewCache() async {
+    final prefs = await _p;
+    final raw = prefs.getString(_learnPreviewCacheKey);
+    if (raw == null) return {};
+    final decoded = jsonDecode(raw);
+    if (decoded is Map) return Map<String, dynamic>.from(decoded);
+    return {};
+  }
+
+  static Future<void> saveLearnPreviewCache(
+      Map<String, dynamic> cache) async {
+    final prefs = await _p;
+    await prefs.setString(_learnPreviewCacheKey, jsonEncode(cache));
+  }
+
+  static Future<String?> loadLearnPreviewText(
+    String url, {
+    Duration? maxAge,
+  }) async {
+    final cache = await loadLearnPreviewCache();
+    final entry = cache[url];
+    if (entry == null) return null;
+    int? ts;
+    String? v;
+    if (entry is Map) {
+      final map = Map<String, dynamic>.from(entry);
+      v = map['v']?.toString();
+      final t = map['t'];
+      if (t is int) ts = t; else if (t is String) ts = int.tryParse(t);
+    } else if (entry is String) {
+      v = entry;
+    }
+    if (v == null || v.isEmpty) return null;
+    if (maxAge != null && ts != null) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (now - ts > maxAge.inMilliseconds) return null;
+    }
+    return v;
+  }
+
+  static Future<void> saveLearnPreviewText(String url, String text) async {
+    final cache = await loadLearnPreviewCache();
+    cache[url] = {
+      'v': text,
+      't': DateTime.now().millisecondsSinceEpoch,
+    };
+    await saveLearnPreviewCache(cache);
+  }
+}
+
+extension LocalStoreIdentity on LocalStore {
+  static Future<String> getClientId() async {
+    final prefs = await LocalStore._p;
+    final existing = prefs.getString(LocalStore._clientIdKey);
+    if (existing != null && existing.trim().isNotEmpty) return existing;
+    final id = _generateId();
+    await prefs.setString(LocalStore._clientIdKey, id);
+    return id;
+  }
+
+  static String _generateId({int bytes = 16}) {
+    final rnd = Random.secure();
+    final buf = List<int>.generate(bytes, (_) => rnd.nextInt(256));
+    final sb = StringBuffer('cid_');
+    for (final b in buf) {
+      sb.write(b.toRadixString(16).padLeft(2, '0'));
+    }
+    return sb.toString();
   }
 }

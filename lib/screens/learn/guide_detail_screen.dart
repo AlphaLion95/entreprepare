@@ -9,6 +9,7 @@ import '../../services/guide_service.dart';
 import '../../models/guide.dart';
 import '../../utils/link_utils.dart';
 import 'reader_webview_screen.dart';
+import '../../services/local_store.dart';
 
 class GuideDetailScreen extends StatefulWidget {
   final String guideId;
@@ -59,7 +60,21 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
     final needsPreview = (gb == null || gb.isEmpty) &&
         validUrl != null && validVideo == null;
     if (needsPreview) {
-      preview = _fetchPreview(validUrl);
+      // Try cached preview first (valid for 7 days)
+      final cached = await LocalStore.loadLearnPreviewText(
+        validUrl,
+        maxAge: const Duration(days: 7),
+      );
+      if (cached != null) {
+        preview = Future.value(cached);
+      } else {
+        preview = _fetchPreview(validUrl).then((v) async {
+          if (v != null && v.isNotEmpty) {
+            await LocalStore.saveLearnPreviewText(validUrl, v);
+          }
+          return v;
+        });
+      }
     }
     setState(() {
       _guide = g;
