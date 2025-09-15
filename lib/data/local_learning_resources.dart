@@ -5,14 +5,14 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
   {
     'id': 'local-sba-business-plan',
     'title': 'How to Write a Business Plan',
-    'summary': 'Step-by-step SBA guide to writing a business plan.',
-    'tags': ['Planning', 'Business Plan', 'SBA'],
-    'url':
-        'https://www.sba.gov/business-guide/plan-your-business/write-your-business-plan',
+  'summary': 'Step-by-step guide to writing a business plan.',
+  'tags': ['Planning', 'Business Plan'],
+  'url':
+    'https://www.bplans.com/articles/startup/how-to-write-a-business-plan/',
     'coverImage':
         'https://www.profitableventure.com/wp-content/uploads/2023/02/Write-Business-Plan.jpg',
     'category': 'Article',
-    'author': 'U.S. Small Business Administration',
+  'author': 'Bplans',
     'createdAt':
         DateTime.now().millisecondsSinceEpoch - 1000 * 60 * 60 * 24 * 7,
   },
@@ -30,18 +30,17 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
         DateTime.now().millisecondsSinceEpoch - 1000 * 60 * 60 * 24 * 96,
   },
   {
-    'id': 'local-irs-apply-ein',
-    'title': 'Apply for an Employer Identification Number (EIN)',
-    'summary': 'Official IRS page to apply for an EIN for your business.',
-    'tags': ['Legal', 'Tax', 'US'],
-    'url':
-        'https://www.irs.gov/businesses/small-businesses-self-employed/apply-for-an-employer-identification-number-ein-online',
-    'coverImage':
-        'https://howtostartanllc.com/images/ein/employer-identification-number.png',
-    'category': 'Article',
-    'author': 'IRS',
-    'createdAt':
-        DateTime.now().millisecondsSinceEpoch - 1000 * 60 * 60 * 24 * 100,
+  'id': 'local-irs-apply-ein',
+  'title': 'Philippines Tax ID Number (TIN) Guide',
+  'summary': 'How to find and validate a TIN in the Philippines.',
+  'tags': ['Legal', 'Tax', 'PH'],
+  'url': 'https://taxdo.com/resources/global-tax-id-validation-guide/philippines',
+  'coverImage':
+    'https://cdn.shopify.com/s/files/1/0070/7032/articles/tax-id-number_5a461b4d-abe2-4aee-bfaf-19b0ecce8d6d.png?v=1729517005',
+  'category': 'Article',
+  'author': 'Taxdo',
+  'createdAt':
+    DateTime.now().millisecondsSinceEpoch - 1000 * 60 * 60 * 24 * 100,
   },
   {
     'id': 'local-quickbooks-accounting-basics',
@@ -63,7 +62,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary':
         'How CRMs help manage sales pipelines and customer relationships.',
     'tags': ['Sales', 'CRM'],
-    'url': 'https://blog.hubspot.com/sales/what-is-a-crm',
+  'url': 'https://www.pipedrive.com/en/products/what-is-crm',
     'coverImage':
         'https://www.xcitium.com/blog/wp-content/uploads/2025/08/whats-a-crm.png',
     'category': 'Article',
@@ -76,7 +75,9 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'title': 'Customer Service 101: Fundamentals & Best Practices',
     'summary': 'Deliver great support to keep customers happy and loyal.',
     'tags': ['Operations', 'Customer Service'],
-    'url': 'https://www.zendesk.com/blog/customer-service-101/',
+  'url': 'https://www.cca-global.com/content/latest/article/2023/03/customer-service-101-what-it-is--9-best-practices-384/',
+  'coverImage':
+    'https://www.cca-global.com/ckfinder/userfiles/files/WEBSITE_2020/news/images/CS%20101%20banner%20image.png',
     'category': 'Article',
     'author': 'Zendesk',
     'createdAt':
@@ -113,7 +114,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'title': 'Food Safety Basics for Small Businesses',
     'summary': 'Key practices to keep customers safe if selling food.',
     'tags': ['Operations', 'Compliance', 'Food'],
-    'url': 'https://www.cdc.gov/foodsafety/index.html',
+    'url': 'https://archive.wwf.org.ph/resource-center/story-archives-2020/food-safety/',
+    'coverImage': 'https://archive.wwf.org.ph/wp-content/uploads/2020/06/image1.jpg',
     'category': 'Article',
     'author': 'CDC',
     'createdAt':
@@ -124,7 +126,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'title': 'Lean Canvas Explained in 15 Minutes',
     'summary': 'A quick overview of the Lean Canvas framework.',
     'tags': ['Planning', 'Video'],
-    'videoUrl': 'https://www.youtube.com/watch?v=GgN8CGcT5c8',
+  'videoUrl': 'https://www.youtube.com/watch?v=7o8uYdUaFR4',
     'coverImage': 'https://www.process.st/wp-content/uploads/2024/02/Lean-canvas-example-customer-profile.png',
     'category': 'Video',
     'author': 'LeanStack (YouTube)',
@@ -145,26 +147,26 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
   {
     'id': 'local-sba-fund-business',
     'title': 'Fund Your Business',
-    'summary': 'Explore funding options like loans, grants, and investors.',
-    'tags': ['Funding', 'Finance', 'SBA'],
-    'url':
-        'https://www.sba.gov/business-guide/plan-your-business/fund-your-business',
+    'summary': 'Funding strategies and options for business expansion in the Philippines.',
+    'tags': ['Funding', 'Finance'],
+  'url':
+    'https://tonikbank.com/blog/top-strategies-and-options-funding-your-business-expansion-plan-philippines',
     'coverImage': 'https://www.upflip.com/wp-content/uploads/2022/02/how-to-fund-a-business-1.jpg',
     'category': 'Article',
-    'author': 'U.S. Small Business Administration',
+    'author': 'Tonik Bank',
     'createdAt':
         DateTime.now().millisecondsSinceEpoch - 1000 * 60 * 60 * 24 * 25,
   },
   {
     'id': 'local-sba-marketing-plan',
     'title': 'Write Your Marketing Plan',
-    'summary': 'Define your marketing strategy and channels.',
-    'tags': ['Marketing', 'SBA', 'Go-To-Market'],
-    'url':
-        'https://www.sba.gov/business-guide/manage-your-business/marketing-sales/write-your-marketing-plan',
+  'summary': 'Define your marketing strategy, channels, and KPIs.',
+  'tags': ['Marketing', 'Go-To-Market'],
+  'url':
+    'https://blog.hubspot.com/marketing/marketing-plan',
     'coverImage': 'https://smallbusiness-staging.s3.amazonaws.com/uploads/2018/08/Marketing-plan-e1535441902712.jpeg',
     'category': 'Article',
-    'author': 'U.S. Small Business Administration',
+  'author': 'HubSpot',
     'createdAt':
         DateTime.now().millisecondsSinceEpoch - 1000 * 60 * 60 * 24 * 27,
   },
@@ -206,13 +208,13 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
   },
   {
     'id': 'local-govuk-set-up-business',
-    'title': 'Setup up Business',
-    'summary': 'Official guidance to register and run a business in the UK.',
-    'tags': ['Legal', 'Registration', 'UK'],
-    'url': 'https://www.gov.uk/set-up-business',
+    'title': 'How to Start a Business',
+    'summary': 'Step-by-step guide to starting a business.',
+    'tags': ['Getting Started', 'Operations'],
+    'url': 'https://www.businessnewsdaily.com/4686-how-to-start-a-business.html',
     'coverImage': 'https://www.intelligenthq.com/wp-content/uploads/2018/05/start-business.jpg',
     'category': 'Article',
-    'author': 'GOV.UK',
+    'author': 'Business News Daily',
     'createdAt':
         DateTime.now().millisecondsSinceEpoch - 1000 * 60 * 60 * 24 * 70,
   },
@@ -276,39 +278,39 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
   {
     'id': 'local-sba-market-research',
     'title': 'Market Research and Competitive Analysis',
-    'summary': 'Learn how to research your market and analyze competitors.',
-    'tags': ['Market Research', 'SBA', 'Validation'],
+    'summary': 'How to research your market and analyze competitors (Philippines focus).',
+    'tags': ['Market Research', 'Validation'],
     'url':
-        'https://www.sba.gov/business-guide/plan-your-business/market-research-competitive-analysis',
+        'https://www.philippinesmarketresearch.com/services/competitor-research',
     'coverImage': 'https://images.squarespace-cdn.com/content/v1/5550bf8de4b0be0d773f8288/1737548630568-0XCH8D89MLS2XCR6O4G4/Market+Research+and+Competitive+Analysis.jpg?format=1000w',
     'category': 'Article',
-    'author': 'U.S. Small Business Administration',
+    'author': 'Philippines Market Research',
     'createdAt':
         DateTime.now().millisecondsSinceEpoch - 1000 * 60 * 60 * 24 * 10,
   },
   {
     'id': 'local-sba-startup-costs',
     'title': 'Calculate Your Startup Costs',
-    'summary': 'Estimate the money you need to start your business.',
-    'tags': ['Finance', 'Costs', 'SBA'],
+    'summary': 'Estimate startup expenses and plan your budget.',
+    'tags': ['Finance', 'Costs'],
     'url':
-        'https://www.sba.gov/business-guide/plan-your-business/calculate-your-startup-costs',
+        'https://www.planprojections.com/projections/start-up-expenses/',
     'coverImage': 'https://static-web.upmetrics.co/wp-content/uploads/2024/03/21141048/calculate-business-startup-costs-01-2.png',
     'category': 'Article',
-    'author': 'U.S. Small Business Administration',
+    'author': 'Plan Projections',
     'createdAt':
         DateTime.now().millisecondsSinceEpoch - 1000 * 60 * 60 * 24 * 14,
   },
   {
     'id': 'local-sba-business-structure',
     'title': 'Choose a Business Structure',
-    'summary': 'Compare LLCs, sole proprietorships, corporations, and more.',
-    'tags': ['Legal', 'Structures', 'SBA'],
+    'summary': 'Compare common business structures in the Philippines.',
+    'tags': ['Legal', 'Structures'],
     'url':
-        'https://www.sba.gov/business-guide/launch-your-business/choose-business-structure',
+        'https://www.onecfoph.co/blog/content/4-most-common-legal-business-structures-in-the-philippines',
     'coverImage': 'https://www.complinova.com/content/images/BEINDIA.png',
     'category': 'Article',
-    'author': 'U.S. Small Business Administration',
+    'author': 'OneCFO PH',
     'createdAt':
         DateTime.now().millisecondsSinceEpoch - 1000 * 60 * 60 * 24 * 21,
   },
