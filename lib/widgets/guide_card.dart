@@ -10,17 +10,21 @@ class GuideCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+  final String displaySummary = (guide.summary == null || guide.summary!.trim().isEmpty)
+    ? 'No summary available'
+    : guide.summary!;
     // Compute a best-effort cover image: explicit cover > YouTube thumbnail > site favicon
-  final String? coverCandidate =
-    (guide.coverImage != null && guide.coverImage!.isNotEmpty)
-      ? guide.coverImage
-      : (youtubeThumbnailFromUrl(guide.videoUrl) ??
-        faviconFromUrl(guide.url));
-  final bool isAssetCover =
-    coverCandidate != null && coverCandidate.startsWith('assets/');
-  final String? coverUrl = (!isAssetCover && isPlaceholderImageUrl(coverCandidate))
-    ? null
-    : coverCandidate;
+    final String? coverCandidate =
+        (guide.coverImage != null && guide.coverImage!.isNotEmpty)
+        ? guide.coverImage
+        : (youtubeThumbnailFromUrl(guide.videoUrl) ??
+              faviconFromUrl(guide.url));
+    final bool isAssetCover =
+        coverCandidate != null && coverCandidate.startsWith('assets/');
+    final String? coverUrl =
+        (!isAssetCover && isPlaceholderImageUrl(coverCandidate))
+        ? null
+        : coverCandidate;
     final String? validLink = isValidExternalLink(guide.videoUrl)
         ? guide.videoUrl
         : (isValidExternalLink(guide.url) ? guide.url : null);
@@ -91,11 +95,15 @@ class GuideCard extends StatelessWidget {
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      guide.summary ?? 'No summary available',
+                      displaySummary,
                       style: Theme.of(context).textTheme.bodyMedium,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -121,9 +129,13 @@ class GuideCard extends StatelessWidget {
                               color: Colors.grey.shade600,
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              extractDomain(validLink) ?? 'Open',
-                              style: TextStyle(color: Colors.grey.shade700),
+                            Expanded(
+                              child: Text(
+                                extractDomain(validLink) ?? 'Open',
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                                style: TextStyle(color: Colors.grey.shade700),
+                              ),
                             ),
                           ],
                         ),
