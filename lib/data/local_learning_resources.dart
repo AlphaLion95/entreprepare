@@ -9,7 +9,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'tags': ['Planning', 'Business Plan', 'SBA'],
     'url':
         'https://www.sba.gov/business-guide/plan-your-business/write-your-business-plan',
-    'coverImage': 'https://www.profitableventure.com/wp-content/uploads/2023/02/Write-Business-Plan.jpg',
+    'coverImage':
+        'https://www.profitableventure.com/wp-content/uploads/2023/02/Write-Business-Plan.jpg',
     'category': 'Article',
     'author': 'U.S. Small Business Administration',
     'createdAt':
@@ -21,7 +22,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'Get matched with mentors and access business templates.',
     'tags': ['Mentoring', 'Templates', 'SCORE'],
     'url': 'https://www.score.org/',
-    'coverImage': 'https://study.com/cimages/videopreview/videopreview-full/np63q5ej91.jpg',
+    'coverImage':
+        'https://study.com/cimages/videopreview/videopreview-full/np63q5ej91.jpg',
     'category': 'Article',
     'author': 'SCORE',
     'createdAt':
@@ -34,7 +36,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'tags': ['Legal', 'Tax', 'US'],
     'url':
         'https://www.irs.gov/businesses/small-businesses-self-employed/apply-for-an-employer-identification-number-ein-online',
-    'coverImage': 'https://howtostartanllc.com/images/ein/employer-identification-number.png',
+    'coverImage':
+        'https://howtostartanllc.com/images/ein/employer-identification-number.png',
     'category': 'Article',
     'author': 'IRS',
     'createdAt':
@@ -47,7 +50,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
         'Learn bookkeeping basics, financial statements, and best practices.',
     'tags': ['Accounting', 'Finance'],
     'url': 'https://quickbooks.intuit.com/r/bookkeeping/what-is-accounting/',
-    'coverImage': 'https://www.lessaccounting.com/wp-content/uploads/2023/09/LA-Blog-Cover-Photos-31-1024x576.png',
+    'coverImage':
+        'https://www.lessaccounting.com/wp-content/uploads/2023/09/LA-Blog-Cover-Photos-31-1024x576.png',
     'category': 'Article',
     'author': 'Intuit QuickBooks',
     'createdAt':
@@ -60,7 +64,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
         'How CRMs help manage sales pipelines and customer relationships.',
     'tags': ['Sales', 'CRM'],
     'url': 'https://blog.hubspot.com/sales/what-is-a-crm',
-    'coverImage': 'https://www.xcitium.com/blog/wp-content/uploads/2025/08/whats-a-crm.png',
+    'coverImage':
+        'https://www.xcitium.com/blog/wp-content/uploads/2025/08/whats-a-crm.png',
     'category': 'Article',
     'author': 'HubSpot',
     'createdAt':
@@ -83,7 +88,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'Official guide to register a business name with DTI.',
     'tags': ['Legal', 'Registration', 'PH'],
     'url': 'https://bnrs.dti.gov.ph/',
-    'coverImage': 'https://dtibnrs.s3-ap-southeast-1.amazonaws.com/files/20250403/1dizoykjde0821.jpg',
+    'coverImage':
+        'https://dtibnrs.s3-ap-southeast-1.amazonaws.com/files/20250403/1dizoykjde0821.jpg',
     'category': 'Article',
     'author': 'DTI Philippines',
     'createdAt':
@@ -95,7 +101,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'How to register with the Bureau of Internal Revenue.',
     'tags': ['Tax', 'Legal', 'PH'],
     'url': 'https://sugbo.ph/2022/guide-bir-registration/',
-    'coverImage': 'https://baivigroup.com/wp-content/uploads/2021/04/how-to-register-your-business-with-BIR.jpg',
+    'coverImage':
+        'https://baivigroup.com/wp-content/uploads/2021/04/how-to-register-your-business-with-BIR.jpg',
     'category': 'Article',
     'author': 'BIR Philippines',
     'createdAt':
@@ -118,6 +125,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'A quick overview of the Lean Canvas framework.',
     'tags': ['Planning', 'Video'],
     'videoUrl': 'https://www.youtube.com/watch?v=GgN8CGcT5c8',
+    'coverImage': 'https://www.process.st/wp-content/uploads/2024/02/Lean-canvas-example-customer-profile.png',
     'category': 'Video',
     'author': 'LeanStack (YouTube)',
     'createdAt':
@@ -141,6 +149,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'tags': ['Funding', 'Finance', 'SBA'],
     'url':
         'https://www.sba.gov/business-guide/plan-your-business/fund-your-business',
+    'coverImage': 'https://www.upflip.com/wp-content/uploads/2022/02/how-to-fund-a-business-1.jpg',
     'category': 'Article',
     'author': 'U.S. Small Business Administration',
     'createdAt':
@@ -153,6 +162,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'tags': ['Marketing', 'SBA', 'Go-To-Market'],
     'url':
         'https://www.sba.gov/business-guide/manage-your-business/marketing-sales/write-your-marketing-plan',
+    'coverImage': 'https://smallbusiness-staging.s3.amazonaws.com/uploads/2018/08/Marketing-plan-e1535441902712.jpeg',
     'category': 'Article',
     'author': 'U.S. Small Business Administration',
     'createdAt':
@@ -164,6 +174,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'Browse hundreds of sample business plans by industry.',
     'tags': ['Business Plan', 'Templates'],
     'url': 'https://www.bplans.com/sample-business-plans/',
+    'coverImage': 'https://web-cdn.paloalto.com/liveplan/wistia/wistia-sbp.jpeg?format=auto&width=736&height=414',
     'category': 'Article',
     'author': 'Bplans',
     'createdAt':
@@ -175,6 +186,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'Common pricing models and how to choose yours.',
     'tags': ['Pricing', 'Revenue'],
     'url': 'https://www.shopify.com/blog/pricing-strategies',
+    'coverImage': 'https://www.orbacloudcfo.com/wp-content/uploads/2022/03/how-to-set-your-prices-1-768x512-1.jpg',
     'category': 'Article',
     'author': 'Shopify',
     'createdAt':
@@ -186,6 +198,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'Key legal concepts for startups and founders.',
     'tags': ['Legal', 'Incorporation', 'Compliance'],
     'url': 'https://stripe.com/atlas/guides',
+    'coverImage': 'https://rapidr.io/blog/content/images/2021/10/og_image.png',
     'category': 'Article',
     'author': 'Stripe Atlas',
     'createdAt':
@@ -193,10 +206,11 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
   },
   {
     'id': 'local-govuk-set-up-business',
-    'title': 'Set up a business (UK)',
+    'title': 'Setup up Business',
     'summary': 'Official guidance to register and run a business in the UK.',
     'tags': ['Legal', 'Registration', 'UK'],
     'url': 'https://www.gov.uk/set-up-business',
+    'coverImage': 'https://www.intelligenthq.com/wp-content/uploads/2018/05/start-business.jpg',
     'category': 'Article',
     'author': 'GOV.UK',
     'createdAt':
@@ -209,6 +223,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'tags': ['Finance', 'Margins', 'COGS'],
     'url':
         'https://www.investopedia.com/ask/answers/071314/what-difference-between-margin-and-markup.asp',
+    'coverImage': 'https://www.cin7.com/hs-fs/hubfs/Imported%20sitepage%20images/Cin7-markup-vs-margin-difference.jpg?width=1000&height=602&name=Cin7-markup-vs-margin-difference.jpg',
     'category': 'Article',
     'author': 'Investopedia',
     'createdAt':
@@ -265,6 +280,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'tags': ['Market Research', 'SBA', 'Validation'],
     'url':
         'https://www.sba.gov/business-guide/plan-your-business/market-research-competitive-analysis',
+    'coverImage': 'https://images.squarespace-cdn.com/content/v1/5550bf8de4b0be0d773f8288/1737548630568-0XCH8D89MLS2XCR6O4G4/Market+Research+and+Competitive+Analysis.jpg?format=1000w',
     'category': 'Article',
     'author': 'U.S. Small Business Administration',
     'createdAt':
@@ -277,6 +293,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'tags': ['Finance', 'Costs', 'SBA'],
     'url':
         'https://www.sba.gov/business-guide/plan-your-business/calculate-your-startup-costs',
+    'coverImage': 'https://static-web.upmetrics.co/wp-content/uploads/2024/03/21141048/calculate-business-startup-costs-01-2.png',
     'category': 'Article',
     'author': 'U.S. Small Business Administration',
     'createdAt':
