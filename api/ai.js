@@ -2,7 +2,10 @@ export default async function handler(req, res) {
   const aiDebug = process.env.AI_DEBUG === '1';
   const allowDevHeader = process.env.ALLOW_DEV_HEADER === '1';
   const vercelEnv = process.env.VERCEL_ENV || 'unknown';
-  const rateLimit = parseInt(process.env.RATE_LIMIT_PER_MIN || '0', 10);
+  const rateCount = parseInt(process.env.RATE_LIMIT_COUNT || process.env.RATE_LIMIT_PER_MIN || '0', 10);
+  const rateWindow = (process.env.RATE_LIMIT_WINDOW || 'minute').toLowerCase(); // minute|hour|day
+  const windowMs = rateWindow === 'hour' ? 3_600_000 : (rateWindow === 'day' ? 86_400_000 : 60_000);
+  let rateMeta = null; // will include { limit, remaining, resetMs }
 
   // Basic CORS support (can be tightened via ALLOWED_ORIGINS env)
   const allowedOrigins = (process.env.ALLOWED_ORIGINS || '*').split(',').map(s=>s.trim());
@@ -11,7 +14,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', allowOriginHeader);
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   // Allow custom auth headers
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Groq-Key, X-App-Secret');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Groq-Key, X-App-Secret, X-Client-Id');
   res.setHeader('Cache-Control', 'no-store');
   if (req.method === 'OPTIONS') return res.status(204).end();
 
@@ -37,14 +40,27 @@ export default async function handler(req, res) {
   }
 
   // Simple in-memory per-IP rate limiting (best-effort, not distributed)
-  if (rateLimit > 0) {
+  if (rateCount > 0) {
+    const clientId = (req.headers['x-client-id'] || '').toString().trim();
     const ip = (req.headers['x-forwarded-for'] || '').toString().split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
+    const key = clientId || ip || 'unknown';
     const now = Date.now();
-    pruneRateBuckets(now);
-    const count = incrementRate(ip, now);
-    if (count > rateLimit) {
-      return res.status(429).json({ error: 'rate_limited', limit: rateLimit, ip });
+    pruneRateBuckets(now, windowMs);
+    const count = incrementRate(key, now, windowMs);
+    const rec = __rateState.buckets.get(key);
+    const resetMs = rec ? Math.max(0, windowMs - (now - rec.windowStart)) : windowMs;
+    if (count > rateCount) {
+      res.setHeader('X-RateLimit-Limit', String(rateCount));
+      res.setHeader('X-RateLimit-Remaining', '0');
+      res.setHeader('X-RateLimit-Window', rateWindow);
+      res.setHeader('Retry-After', String(Math.ceil(resetMs / 1000)));
+      return res.status(429).json({ error: 'rate_limited', limit: rateCount, remaining: 0, resetMs, window: rateWindow, keyType: clientId ? 'client' : 'ip' });
     }
+    const remaining = Math.max(0, rateCount - count);
+    rateMeta = { limit: rateCount, remaining, resetMs, window: rateWindow, keyType: clientId ? 'client' : 'ip' };
+    res.setHeader('X-RateLimit-Limit', String(rateCount));
+    res.setHeader('X-RateLimit-Remaining', String(remaining));
+    res.setHeader('X-RateLimit-Window', rateWindow);
   }
 
   // Optional shared secret (defense-in-depth). If APP_SHARED_SECRET is set, require matching header X-App-Secret.
@@ -93,21 +109,21 @@ export default async function handler(req, res) {
       if (detectedFF === 'ideas') {
         const safeLimit = sanitizeLimit(limit);
         const ideas = heuristicIdeasFallback(query, safeLimit, true);
-  return res.json({ version: 4, codeVersion: process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown', modelUsed: 'heuristic', modelAttempt: 0, repaired: false, fallbackUsed: true, origin: 'forced', ideas, ideasDetailed: ideas.map(t=>({id:hashId(t), text:t})), requestMeta: { type: detectedFF, limit: safeLimit, queryLen: (query||'').length, receivedAt: requestReceivedAt }, forced: true });
+  return res.json({ version: 4, codeVersion: process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown', modelUsed: 'heuristic', modelAttempt: 0, repaired: false, fallbackUsed: true, origin: 'forced', ideas, ideasDetailed: ideas.map(t=>({id:hashId(t), text:t})), requestMeta: { type: detectedFF, limit: safeLimit, queryLen: (query||'').length, receivedAt: requestReceivedAt }, usage: null, rateMeta, forced: true });
       }
       if (detectedFF === 'solutions') {
         const sols = heuristicSolutionsFallback(activity, problem, goal, limit);
-  return res.json({ version: 4, codeVersion: process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown', modelUsed: 'heuristic', modelAttempt: 0, repaired: false, fallbackUsed: true, origin: 'forced', solutions: sols, requestMeta: { type: detectedFF, limit: parseInt(limit||3,10), activityLen: (activity||'').length, problemLen: (problem||'').length, receivedAt: requestReceivedAt }, forced: true });
+  return res.json({ version: 4, codeVersion: process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown', modelUsed: 'heuristic', modelAttempt: 0, repaired: false, fallbackUsed: true, origin: 'forced', solutions: sols, requestMeta: { type: detectedFF, limit: parseInt(limit||3,10), activityLen: (activity||'').length, problemLen: (problem||'').length, receivedAt: requestReceivedAt }, usage: null, rateMeta, forced: true });
       }
       if (detectedFF === 'milestone') {
         const ms = heuristicMilestoneFallback(title);
-  return res.json({ version: 4, codeVersion: process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown', modelUsed: 'heuristic', modelAttempt: 0, repaired: false, fallbackUsed: true, origin: 'forced', ...ms, requestMeta: { type: detectedFF, titleLen: (title||'').length, receivedAt: requestReceivedAt }, forced: true });
+  return res.json({ version: 4, codeVersion: process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown', modelUsed: 'heuristic', modelAttempt: 0, repaired: false, fallbackUsed: true, origin: 'forced', ...ms, requestMeta: { type: detectedFF, titleLen: (title||'').length, receivedAt: requestReceivedAt }, usage: null, rateMeta, forced: true });
       }
       if (detectedFF === 'search') {
         const safeLimit = sanitizeLimit(limit);
         const results = heuristicSearchFallback(query, safeLimit);
         const resultsDetailed = results.map(r=> ({ id: hashId(r.title + '|' + r.snippet), ...r }));
-  return res.json({ version: 4, codeVersion: process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown', modelUsed: 'heuristic', modelAttempt: 0, repaired: false, fallbackUsed: true, origin: 'forced', results, resultsDetailed, requestMeta: { type: detectedFF, limit: safeLimit, queryLen: (query||'').length, receivedAt: requestReceivedAt }, forced: true });
+  return res.json({ version: 4, codeVersion: process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown', modelUsed: 'heuristic', modelAttempt: 0, repaired: false, fallbackUsed: true, origin: 'forced', results, resultsDetailed, requestMeta: { type: detectedFF, limit: safeLimit, queryLen: (query||'').length, receivedAt: requestReceivedAt }, usage: null, rateMeta, forced: true });
       }
     }
   }
@@ -337,7 +353,7 @@ export default async function handler(req, res) {
       const attempts = { modelCallMs, repair1Ms, repair2Ms, repaired, modelAttempt };
       const usage = lastUsage || lastRepairUsage || lastRepair2Usage || null;
   const origin = forcedOrigin(false, fallbackUsed, repaired);
-  const resp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed, origin, ideas, ideasDetailed, requestMeta };
+  const resp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed, origin, ideas, ideasDetailed, requestMeta, usage, rateMeta };
       if (aiDebug) {
         resp.debug = {
           modelChainTried,
@@ -345,7 +361,6 @@ export default async function handler(req, res) {
             repair1Ms,
             repair2Ms,
             responseChars: (content||'').length,
-            usage,
             attempts
         };
       }
@@ -374,9 +389,9 @@ export default async function handler(req, res) {
       const attempts = { modelCallMs, repair1Ms, repaired, modelAttempt };
       const usage = lastUsage || lastRepairUsage || null;
   const origin = forcedOrigin(false, fallbackUsed, repaired);
-  const resp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed, origin, solutions: sols, requestMeta };
+  const resp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed, origin, solutions: sols, requestMeta, usage, rateMeta };
       if (aiDebug) {
-        resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, usage, attempts };
+        resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, attempts };
       }
       return res.json(resp);
     }
@@ -403,9 +418,9 @@ export default async function handler(req, res) {
       const attempts = { modelCallMs, repair1Ms, repaired, modelAttempt };
       const usage = lastUsage || lastRepairUsage || null;
   const origin = forcedOrigin(false, fallbackUsed, repaired);
-  const resp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed, origin, ...ms, requestMeta };
+  const resp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed, origin, ...ms, requestMeta, usage, rateMeta };
       if (aiDebug) {
-        resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, usage, attempts };
+        resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, attempts };
       }
       return res.json(resp);
     }
@@ -424,9 +439,9 @@ export default async function handler(req, res) {
       const attempts = { modelCallMs, repair1Ms, repaired, modelAttempt };
       const usage = lastUsage || lastRepairUsage || null;
   const origin = forcedOrigin(false, false, repaired);
-  const baseResp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed: false, origin, planVersion: derived.planVersion || 1, plan: derived, requestMeta };
+  const baseResp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed: false, origin, planVersion: derived.planVersion || 1, plan: derived, requestMeta, usage, rateMeta };
       if (aiDebug) {
-        baseResp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, usage, attempts };
+        baseResp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, attempts };
       }
       if (schemaKind === 'plan_financials') {
         // Only return financial slices + warnings to merge client-side
@@ -467,11 +482,11 @@ export default async function handler(req, res) {
       const codeVersion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown';
       const requestMeta = { type: detected, limit: safeLimit, queryLen: (query||'').length, receivedAt: requestReceivedAt };
       const attempts = { modelCallMs, repair1Ms, repaired, modelAttempt };
-      const usage = lastUsage || lastRepairUsage || null;
+    const usage = lastUsage || lastRepairUsage || null;
   const resultsDetailed = results.map(r=> ({ id: hashId(r.title + '|' + r.snippet), ...r }));
   const origin = forcedOrigin(false, fallbackUsed, repaired);
-  const resp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed, origin, results, resultsDetailed, requestMeta };
-      if (aiDebug) { resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, usage, attempts }; }
+  const resp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed, origin, results, resultsDetailed, requestMeta, usage, rateMeta };
+    if (aiDebug) { resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, attempts }; }
       return res.json(resp);
     }
     return res.status(500).json({ error: 'unexpected_branch' });
@@ -770,14 +785,14 @@ function addPlanDerived(plan) {
 
 // In-memory rate limiting (non-distributed). Window = 60s.
 const __rateState = { buckets: new Map() }; // ip -> { windowStart, count }
-function pruneRateBuckets(now) {
+function pruneRateBuckets(now, windowMs) {
   for (const [ip, rec] of __rateState.buckets.entries()) {
-    if (now - rec.windowStart > 60_000) __rateState.buckets.delete(ip);
+    if (now - rec.windowStart > windowMs) __rateState.buckets.delete(ip);
   }
 }
-function incrementRate(ip, now) {
+function incrementRate(ip, now, windowMs) {
   let rec = __rateState.buckets.get(ip);
-  if (!rec || now - rec.windowStart > 60_000) {
+  if (!rec || now - rec.windowStart > windowMs) {
     rec = { windowStart: now, count: 0 };
     __rateState.buckets.set(ip, rec);
   }
