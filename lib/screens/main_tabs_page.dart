@@ -21,11 +21,11 @@ class _MainTabsPageState extends State<MainTabsPage> {
 
   late final List<Widget> _pages = [
     HomeScreen(onSelectTab: (i) => _onItemTapped(i)),
-    const PlanListScreen(),
     if (kAiIdeasEnabled) const AiIdeaScreen(),
+    const LearnListScreen(),
+    const PlanListScreen(),
     const SettingsScreen(),
     const AboutScreen(),
-    const LearnListScreen(),
   ];
 
   void _onItemTapped(int index) => setState(() => _selectedIndex = index);
@@ -54,17 +54,22 @@ class _MainTabsPageState extends State<MainTabsPage> {
             selectedIcon: Icon(Icons.home_rounded),
             label: 'Home',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.event_note_outlined),
-            selectedIcon: Icon(Icons.event_note_rounded),
-            label: 'Plans',
-          ),
           if (kAiIdeasEnabled)
             const NavigationDestination(
               icon: Icon(Icons.lightbulb_outline),
               selectedIcon: Icon(Icons.lightbulb),
               label: 'AI Ideas',
             ),
+          const NavigationDestination(
+            icon: Icon(Icons.school_outlined),
+            selectedIcon: Icon(Icons.school_rounded),
+            label: 'Learn',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.event_note_outlined),
+            selectedIcon: Icon(Icons.event_note_rounded),
+            label: 'Plans',
+          ),
           const NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings_rounded),
@@ -74,11 +79,6 @@ class _MainTabsPageState extends State<MainTabsPage> {
             icon: Icon(Icons.info_outline),
             selectedIcon: Icon(Icons.info_rounded),
             label: 'About',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.school_outlined),
-            selectedIcon: Icon(Icons.school_rounded),
-            label: 'Learn',
           ),
         ],
       ),
