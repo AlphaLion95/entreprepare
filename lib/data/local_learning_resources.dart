@@ -306,6 +306,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'tags': ['Legal', 'Structures', 'SBA'],
     'url':
         'https://www.sba.gov/business-guide/launch-your-business/choose-business-structure',
+    'coverImage': 'https://www.complinova.com/content/images/BEINDIA.png',
     'category': 'Article',
     'author': 'U.S. Small Business Administration',
     'createdAt':
@@ -317,6 +318,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'A beginner-friendly walkthrough to launch a business.',
     'tags': ['Getting Started', 'Operations'],
     'url': 'https://www.shopify.com/blog/how-to-start-a-business',
+    'coverImage': 'https://techhelp.ca/wp-content/uploads/2024/10/8-Steps-for-Success-1024x536.png',
     'category': 'Article',
     'author': 'Shopify',
     'createdAt':
@@ -328,6 +330,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'Practical methods for market research with examples.',
     'tags': ['Market Research', 'Validation'],
     'url': 'https://www.shopify.com/blog/market-research',
+    'coverImage': 'https://www.relevantinsights.com/wp-content/uploads/2021/06/Market-Research-Process.png',
     'category': 'Article',
     'author': 'Shopify',
     'createdAt':
@@ -339,6 +342,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'A modern guide with templates to create business plans.',
     'tags': ['Business Plan', 'Templates'],
     'url': 'https://blog.hubspot.com/marketing/business-plan',
+    'coverImage': 'https://virtuzone.com/wp-content/uploads/2023/12/one-page-business-plan.jpg',
     'category': 'Article',
     'author': 'HubSpot',
     'createdAt':
@@ -350,6 +354,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'How to research and build accurate customer personas.',
     'tags': ['Persona', 'Marketing'],
     'url': 'https://blog.hubspot.com/marketing/buyer-persona-research',
+    'coverImage': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRqhPZEjDzr-ueRHelkBlQTDiWPW_BN2A1aaA&s',
     'category': 'Article',
     'author': 'HubSpot',
     'createdAt':
