@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/foundation.dart' show compute;
+import 'package:flutter/foundation.dart' show compute, kIsWeb;
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
@@ -98,6 +98,10 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
   }
 
   Future<String?> _fetchPreview(String url) async {
+    if (kIsWeb) {
+      // On web, skip cross-origin fetch; the UI will fall back to summary.
+      return null;
+    }
     try {
       // Fetch only the first ~200KB to avoid heavy parsing on large pages
       final resp = await http
