@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/guide_service.dart';
@@ -18,6 +21,7 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
   final GuideService _service = GuideService();
   Guide? _guide;
   bool _loading = true;
+  Future<String?>? _previewFuture;
 
   String _fmtDate(DateTime dt) {
     final d = dt.toLocal();
@@ -45,12 +49,23 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
 
   Future<void> _load() async {
     final g = await _service.fetchGuideById(widget.guideId);
-    if (mounted) {
-      setState(() {
-        _guide = g;
-        _loading = false;
-      });
+    if (!mounted) return;
+    Future<String?>? preview;
+    final gv = g?.videoUrl;
+    final gu = g?.url;
+    final gb = g?.bodyMarkdown;
+    final validVideo = isValidExternalLink(gv) ? gv : null;
+    final validUrl = isValidExternalLink(gu) ? gu : null;
+    final needsPreview = (gb == null || gb.isEmpty) &&
+        validUrl != null && validVideo == null;
+    if (needsPreview) {
+      preview = _fetchPreview(validUrl);
     }
+    setState(() {
+      _guide = g;
+      _previewFuture = preview;
+      _loading = false;
+    });
   }
 
   Future<void> _openUrl(String url) async {
@@ -67,6 +82,123 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
     }
   }
 
+  Future<String?> _fetchPreview(String url) async {
+    try {
+      // Fetch only the first ~200KB to avoid heavy parsing on large pages
+      final resp = await http
+          .get(
+            Uri.parse(url),
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Android) AppleWebKit/537.36 '
+                  '(KHTML, like Gecko) Chrome Mobile Safari/537.36',
+              'Range': 'bytes=0-200000',
+            },
+          )
+          .timeout(const Duration(seconds: 8));
+      if (resp.statusCode != 200 && resp.statusCode != 206) return null;
+      final html = resp.body;
+      // Prefer parsing only the <head> for meta description; cap sample size
+      final lower = html.toLowerCase();
+      final headEnd = lower.indexOf('</head>');
+      final int cap = 100000; // 100KB cap for regex parsing
+      final sample = headEnd >= 0
+          ? html.substring(0, headEnd + 7)
+          : html.substring(0, html.length < cap ? html.length : cap);
+
+      final parsed = await compute(_extractPreviewText, sample);
+      return parsed;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Parsing helpers moved to background isolate function below.
+
+// Runs in a background isolate via `compute` to avoid jank.
+String? _extractPreviewText(String sample) {
+  String _stripHtmlIso(String s) => s.replaceAll(RegExp('<[^>]+>'), ' ');
+  String _normalizeSpacesIso(String s) => s.replaceAll(RegExp(r'\s+'), ' ');
+  String _decodeEntitiesIso(String s) => s
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll('&amp;', '&')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#39;', "'")
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>');
+
+  String? _extractMetaIso(String html, String attr, String value) {
+    final pattern = RegExp(
+      '<meta[^>]*' + attr + '=["\']' + value + '["\'][^>]*content=["\'](.*?)["\']',
+      caseSensitive: false,
+      dotAll: true,
+    );
+    final altPattern = RegExp(
+      '<meta[^>]*content=["\'](.*?)["\'][^>]*' + attr + '=["\']' + value + '["\']',
+      caseSensitive: false,
+      dotAll: true,
+    );
+    final m = pattern.firstMatch(html) ?? altPattern.firstMatch(html);
+    return m != null ? m.group(1) : null;
+  }
+
+  String? _firstGoodParagraphIso(String html) {
+    final paraRe =
+        RegExp('<p[^>]*>(.*?)</p>', caseSensitive: false, dotAll: true);
+    final matches = paraRe.allMatches(html).toList();
+    bool isEnumeratedStart(String s) {
+      final ls = s.trimLeft();
+      return RegExp(r'^(step|part)\s*\d+[:).\-]\s*', caseSensitive: false)
+              .hasMatch(ls) ||
+          RegExp(r'^\d+\s*[).\-:]\s*').hasMatch(ls);
+    }
+    String clean(String raw) =>
+        _normalizeSpacesIso(_decodeEntitiesIso(_stripHtmlIso(raw))).trim();
+    // Prefer first paragraph that looks like a real intro sentence
+    for (final m in matches) {
+      final txt = m.group(1);
+      if (txt == null) continue;
+      final plain = clean(txt);
+      if (plain.isEmpty) continue;
+      if (plain.length < 40) continue; // too short, likely label/byline
+      if (isEnumeratedStart(plain)) continue; // skip list starts like "1.)" or "Step 1"
+      if (plain.toLowerCase().startsWith('by ') ||
+          plain.toLowerCase().startsWith('posted ') ||
+          plain.toLowerCase().contains('cookie') ||
+          plain.toLowerCase().contains('subscribe')) continue;
+      return plain;
+    }
+    // Fallback: first non-empty paragraph
+    for (final m in matches) {
+      final txt = m.group(1);
+      if (txt == null) continue;
+      final plain = clean(txt);
+      if (plain.isNotEmpty) return plain;
+    }
+    return null;
+  }
+
+  
+
+  final metaOg = _extractMetaIso(sample, 'property', 'og:description');
+  final metaDesc = metaOg ?? _extractMetaIso(sample, 'name', 'description');
+  var text = metaDesc ?? _firstGoodParagraphIso(sample);
+  if (text == null) return null;
+  text = _normalizeSpacesIso(_decodeEntitiesIso(_stripHtmlIso(text))).trim();
+  if (text.isEmpty) return null;
+  // Keep only a clean first sentence to avoid list items like "1..."
+  int end = text.indexOf(RegExp(r'[.!?]\s'));
+  if (end != -1 && end >= 60) {
+    text = text.substring(0, end + 1);
+  } else if (text.length > 220) {
+    text = text.substring(0, 220).trim() + '…';
+  }
+  // Remove leftover leading enumeration tokens
+  text = text.replaceFirst(RegExp(r'^\s*\d+\s*[).\-:]\s*'), '');
+  text = text.replaceFirst(
+      RegExp(r'^(step|part)\s*\d+[:).\-]\s*', caseSensitive: false), '');
+  return text;
+}
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -76,15 +208,15 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
       return Scaffold(body: Center(child: Text('Guide not found')));
     }
 
-  final g = _guide!;
-  final coverCandidate = (g.coverImage != null && g.coverImage!.isNotEmpty)
-    ? g.coverImage
-    : (youtubeThumbnailFromUrl(g.videoUrl) ?? faviconFromUrl(g.url));
-  final bool isAssetCover =
-    coverCandidate != null && coverCandidate.startsWith('assets/');
-  final coverUrl = (!isAssetCover && isPlaceholderImageUrl(coverCandidate))
-    ? null
-    : coverCandidate;
+    final g = _guide!;
+    final coverCandidate = (g.coverImage != null && g.coverImage!.isNotEmpty)
+        ? g.coverImage
+        : (youtubeThumbnailFromUrl(g.videoUrl) ?? faviconFromUrl(g.url));
+    final bool isAssetCover =
+        coverCandidate != null && coverCandidate.startsWith('assets/');
+    final coverUrl = (!isAssetCover && isPlaceholderImageUrl(coverCandidate))
+        ? null
+        : coverCandidate;
     final validVideo = isValidExternalLink(g.videoUrl) ? g.videoUrl : null;
     final validUrl = isValidExternalLink(g.url) ? g.url : null;
     final domain = extractDomain(validVideo ?? validUrl) ?? '';
@@ -144,37 +276,30 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
                   if (summary.isNotEmpty)
                     Text(summary, style: const TextStyle(fontSize: 14)),
                   const SizedBox(height: 8),
-                  Row(
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       if (domain.isNotEmpty) ...[
-                        const Icon(
-                          Icons.public,
-                          size: 14,
-                          color: Colors.black54,
-                        ),
+                        const Icon(Icons.public, size: 14, color: Colors.black54),
                         const SizedBox(width: 4),
                         Text(
                           domain,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
                           style: const TextStyle(color: Colors.black87),
                         ),
-                        const SizedBox(width: 12),
                       ],
-                      const Icon(
-                        Icons.person_outline,
-                        size: 14,
-                        color: Colors.black54,
-                      ),
+                      const Icon(Icons.person_outline, size: 14, color: Colors.black54),
                       const SizedBox(width: 4),
                       Text(
                         g.author,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
                         style: const TextStyle(color: Colors.black87),
                       ),
-                      const SizedBox(width: 12),
-                      const Icon(
-                        Icons.calendar_today,
-                        size: 14,
-                        color: Colors.black54,
-                      ),
+                      const Icon(Icons.calendar_today, size: 14, color: Colors.black54),
                       const SizedBox(width: 4),
                       Text(
                         _fmtDate(g.createdAt),
@@ -236,6 +361,47 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
                             );
                           },
                         ),
+                        if (_previewFuture != null) ...[
+                          const SizedBox(height: 12),
+                          FutureBuilder<String?>(
+                            future: _previewFuture,
+                            builder: (context, snap) {
+                              if (snap.connectionState == ConnectionState.waiting) {
+                                return const SizedBox();
+                              }
+                              final text = snap.data;
+                              if (text == null || text.isEmpty) return const SizedBox();
+                                  final style = Theme.of(context).textTheme.bodyMedium;
+                                  return RichText(
+                                    text: TextSpan(
+                                      style: style,
+                                      children: [
+                                        TextSpan(text: text + ' '),
+                                        TextSpan(
+                                          text: 'Read more',
+                                          style: style?.copyWith(
+                                            color: Theme.of(context).colorScheme.primary,
+                                            decoration: TextDecoration.underline,
+                                          ),
+                                          recognizer: TapGestureRecognizer()
+                                            ..onTap = () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) => ReaderWebViewScreen(
+                                                    url: validUrl,
+                                                    title: g.title,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                            },
+                          ),
+                        ],
                         const SizedBox(height: 12),
                       ],
                     ),
