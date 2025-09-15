@@ -21,6 +21,7 @@ dependencies:
   uuid: ^4.0.0
   cloud_functions: 5.6.2
   shared_preferences: ^2.3.2
+  webview_flutter: ^4.7.0
 
   # Firebase
   firebase_core: ^3.6.0
@@ -43,8 +44,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/googlelogo.jpg
-    - assets/app_icon.png
+    - assets/
 
 flutter_icons:
   android: true
