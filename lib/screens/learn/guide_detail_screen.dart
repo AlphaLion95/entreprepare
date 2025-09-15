@@ -5,6 +5,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert' as convert;
 import '../../services/guide_service.dart';
 import '../../models/guide.dart';
 import '../../utils/link_utils.dart';
@@ -99,7 +100,20 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
 
   Future<String?> _fetchPreview(String url) async {
     if (kIsWeb) {
-      // On web, skip cross-origin fetch; the UI will fall back to summary.
+      // On web, use the HTTPS function to fetch preview with CORS.
+      try {
+        final u = Uri.parse('https://us-central1-entreprepare-e1d7d.cloudfunctions.net/preview').replace(
+          queryParameters: { 'target': url },
+        );
+        final resp = await http.get(u).timeout(const Duration(seconds: 8));
+        if (resp.statusCode == 200) {
+          final data = convert.jsonDecode(resp.body);
+          if (data is Map && data['preview'] is String) {
+            final val = (data['preview'] as String).trim();
+            return val.isNotEmpty ? val : null;
+          }
+        }
+      } catch (_) {}
       return null;
     }
     try {
