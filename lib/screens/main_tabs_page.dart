@@ -22,8 +22,8 @@ class _MainTabsPageState extends State<MainTabsPage> {
   late final List<Widget> _pages = [
     HomeScreen(onSelectTab: (i) => _onItemTapped(i)),
     if (kAiIdeasEnabled) const AiIdeaScreen(),
-    const LearnListScreen(),
     const PlanListScreen(),
+    const LearnListScreen(),
     const SettingsScreen(),
     const AboutScreen(),
   ];
@@ -61,14 +61,14 @@ class _MainTabsPageState extends State<MainTabsPage> {
               label: 'AI Ideas',
             ),
           const NavigationDestination(
-            icon: Icon(Icons.school_outlined),
-            selectedIcon: Icon(Icons.school_rounded),
-            label: 'Learn',
-          ),
-          const NavigationDestination(
             icon: Icon(Icons.event_note_outlined),
             selectedIcon: Icon(Icons.event_note_rounded),
             label: 'Plans',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.school_outlined),
+            selectedIcon: Icon(Icons.school_rounded),
+            label: 'Learn',
           ),
           const NavigationDestination(
             icon: Icon(Icons.settings_outlined),
