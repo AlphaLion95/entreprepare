@@ -110,21 +110,49 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
             },
           )
           .timeout(const Duration(seconds: 8));
-      if (resp.statusCode != 200 && resp.statusCode != 206) return null;
-      final html = resp.body;
-      // Prefer parsing only the <head> for meta description; cap sample size
-      final lower = html.toLowerCase();
-      final headEnd = lower.indexOf('</head>');
-      final int cap = 100000; // 100KB cap for regex parsing
-      final sample = headEnd >= 0
-          ? html.substring(0, headEnd + 7)
-          : html.substring(0, html.length < cap ? html.length : cap);
-
-      final parsed = await compute(_extractPreviewText, sample);
+      String? parsed;
+      if (resp.statusCode == 200 || resp.statusCode == 206) {
+        final html = resp.body;
+        final sample = _makeSample(html);
+        parsed = await compute(_extractPreviewText, sample);
+      }
+      // Fallback: try a small full GET if range failed or parsing returned null
+      if (parsed == null) {
+        final resp2 = await http
+            .get(
+              Uri.parse(url),
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Android) AppleWebKit/537.36 '
+                    '(KHTML, like Gecko) Chrome Mobile Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              },
+            )
+            .timeout(const Duration(seconds: 8));
+        if (resp2.statusCode == 200) {
+          final html2 = resp2.body;
+          final sample2 = _makeSample(html2);
+          parsed = await compute(_extractPreviewText, sample2);
+        }
+      }
       return parsed;
     } catch (_) {
       return null;
     }
+  }
+
+  // Build a parsing sample: head + first ~50KB of body to catch first paragraph
+  String _makeSample(String html) {
+    final lower = html.toLowerCase();
+    final headEnd = lower.indexOf('</head>');
+    const bodyExtra = 50000; // 50KB after head
+    const capNoHead = 150000; // 150KB if no head
+    if (headEnd >= 0) {
+      final end = (headEnd + 7 + bodyExtra);
+      final endIdx = end < html.length ? end : html.length;
+      return html.substring(0, endIdx);
+    }
+    final endIdx = html.length < capNoHead ? html.length : capNoHead;
+    return html.substring(0, endIdx);
   }
 
   // Parsing helpers moved to background isolate function below.
@@ -194,9 +222,30 @@ String? _extractPreviewText(String sample) {
 
   
 
+  // Try meta tags in order: og:description, twitter:description, name=description
   final metaOg = _extractMetaIso(sample, 'property', 'og:description');
-  final metaDesc = metaOg ?? _extractMetaIso(sample, 'name', 'description');
-  var text = metaDesc ?? _firstGoodParagraphIso(sample);
+  final metaTwitter = _extractMetaIso(sample, 'name', 'twitter:description') ??
+      _extractMetaIso(sample, 'property', 'twitter:description');
+  final metaName = _extractMetaIso(sample, 'name', 'description');
+  var text = metaOg ?? metaTwitter ?? metaName;
+  // If meta missing, try JSON-LD description fields
+  if (text == null) {
+    final ld = RegExp(
+      r'<script[^>]*type\s*=\s*"application/ld\+json"[^>]*>([\s\S]*?)<\/script>',
+      caseSensitive: false,
+    ).firstMatch(sample);
+    if (ld != null) {
+      final json = ld.group(1) ?? '';
+      final descMatch = RegExp(
+        r'"description"\s*:\s*"([\s\S]*?)"',
+      ).firstMatch(json);
+      if (descMatch != null) {
+        text = descMatch.group(1);
+      }
+    }
+  }
+  // Finally, fallback to first good paragraph in the body
+  text = text ?? _firstGoodParagraphIso(sample);
   if (text == null) return null;
   text = _normalizeSpacesIso(_decodeEntitiesIso(_stripHtmlIso(text))).trim();
   if (text.isEmpty) return null;
@@ -376,47 +425,79 @@ String? _extractPreviewText(String sample) {
                             );
                           },
                         ),
-                        if (_previewFuture != null) ...[
-                          const SizedBox(height: 12),
+                        const SizedBox(height: 12),
+                        if (_previewFuture != null)
                           FutureBuilder<String?>(
                             future: _previewFuture,
                             builder: (context, snap) {
                               if (snap.connectionState == ConnectionState.waiting) {
                                 return const SizedBox();
                               }
-                              final text = snap.data;
-                              if (text == null || text.isEmpty) return const SizedBox();
-                                  final style = Theme.of(context).textTheme.bodyMedium;
-                                  return RichText(
-                                    text: TextSpan(
-                                      style: style,
-                                      children: [
-                                        TextSpan(text: text + ' '),
-                                        TextSpan(
-                                          text: 'Read more',
-                                          style: style?.copyWith(
-                                            color: Theme.of(context).colorScheme.primary,
-                                            decoration: TextDecoration.underline,
-                                          ),
-                                          recognizer: TapGestureRecognizer()
-                                            ..onTap = () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (_) => ReaderWebViewScreen(
-                                                    url: validUrl,
-                                                    title: g.title,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                        ),
-                                      ],
+                              final style = Theme.of(context).textTheme.bodyMedium;
+                              final text = (snap.data ?? '').trim();
+                              final display = text.isNotEmpty ? text : summary;
+                              if (display.isEmpty) return const SizedBox();
+                              return RichText(
+                                text: TextSpan(
+                                  style: style,
+                                  children: [
+                                    TextSpan(text: display + ' '),
+                                    TextSpan(
+                                      text: 'Read more',
+                                      style: style?.copyWith(
+                                        color: Theme.of(context).colorScheme.primary,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                      recognizer: TapGestureRecognizer()
+                                        ..onTap = () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => ReaderWebViewScreen(
+                                                url: validUrl,
+                                                title: g.title,
+                                              ),
+                                            ),
+                                          );
+                                        },
                                     ),
-                                  );
+                                  ],
+                                ),
+                              );
                             },
-                          ),
-                        ],
+                          )
+                        else
+                          Builder(builder: (context) {
+                            final style = Theme.of(context).textTheme.bodyMedium;
+                            if (summary.isEmpty) return const SizedBox();
+                            return RichText(
+                              text: TextSpan(
+                                style: style,
+                                children: [
+                                  TextSpan(text: summary + ' '),
+                                  TextSpan(
+                                    text: 'Read more',
+                                    style: style?.copyWith(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                    recognizer: TapGestureRecognizer()
+                                      ..onTap = () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => ReaderWebViewScreen(
+                                              url: validUrl,
+                                              title: g.title,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
                         const SizedBox(height: 12),
                       ],
                     ),
