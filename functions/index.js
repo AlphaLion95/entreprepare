@@ -1,6 +1,5 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const fetch = require('node-fetch');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -180,3 +179,123 @@ exports.aiMilestone = functions.https.onRequest(async (req, res) => {
     return res.status(500).json({ error: 'AI failure' });
   }
 });
+
+// === Preview extractor for web (HTTP) ===
+// GET /preview?target=<url>
+// Response: { preview: string|null }
+exports.preview = functions.https.onRequest(async (req, res) => {
+  // CORS preflight
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
+  const target = (req.query.target || '').toString();
+  try {
+    let url;
+    try { url = new URL(target); } catch (_) { return res.status(400).json({ error: 'Invalid target' }); }
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Android) AppleWebKit/537.36 (KHTML, like Gecko) Chrome Mobile Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Range': 'bytes=0-200000',
+    };
+    let html = null;
+  let resp = await fetch(url, { headers });
+    if (resp.ok) {
+      html = await resp.text();
+    }
+    if (!html) {
+      // Retry without range
+      const headers2 = {
+        'User-Agent': headers['User-Agent'],
+        'Accept': headers['Accept'],
+      };
+  resp = await fetch(url, { headers: headers2 });
+      if (resp.ok) html = await resp.text();
+    }
+    if (!html) return res.json({ preview: null });
+    const sample = makeSample(html);
+    const preview = extractPreview(sample);
+    return res.json({ preview: preview });
+  } catch (err) {
+    console.error('preview error', err);
+    return res.json({ preview: null });
+  }
+});
+
+function makeSample(html) {
+  const lower = html.toLowerCase();
+  const headEnd = lower.indexOf('</head>');
+  const bodyExtra = 50000; // 50KB after head
+  const capNoHead = 150000; // 150KB if no head
+  if (headEnd >= 0) {
+    const end = Math.min(html.length, headEnd + 7 + bodyExtra);
+    return html.substring(0, end);
+  }
+  const endIdx = Math.min(html.length, capNoHead);
+  return html.substring(0, endIdx);
+}
+
+function extractPreview(sample) {
+  const meta = extractMeta(sample, 'property', 'og:description')
+    || extractMeta(sample, 'name', 'twitter:description')
+    || extractMeta(sample, 'property', 'twitter:description')
+    || extractMeta(sample, 'name', 'description');
+  let text = meta;
+  if (!text) {
+    // JSON-LD description
+    const ld = sample.match(/<script[^>]*type\s*=\s*"application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/i);
+    if (ld && ld[1]) {
+      const m = ld[1].match(/"description"\s*:\s*"([\s\S]*?)"/);
+      if (m) text = m[1];
+    }
+  }
+  if (!text) {
+    // First good paragraph
+    const paras = [...sample.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/ig)].map(m => m[1]);
+    const clean = (s) => normalizeSpaces(decodeEntities(stripHtml(s))).trim();
+    const isEnum = (s) => /^(step|part)\s*\d+[:).\-]\s*/i.test(s.trimLeft()) || /^\d+\s*[).\-:]\s*/.test(s.trimLeft());
+    for (const p of paras) {
+      const plain = clean(p);
+      if (!plain || plain.length < 40) continue;
+      if (isEnum(plain)) continue;
+      if (/^(by |posted )/i.test(plain)) continue;
+      if (/cookie|subscribe/i.test(plain)) continue;
+      text = plain; break;
+    }
+    if (!text) {
+      for (const p of paras) { const plain = clean(p); if (plain) { text = plain; break; } }
+    }
+  }
+  if (!text) return null;
+  text = normalizeSpaces(decodeEntities(stripHtml(text))).trim();
+  if (!text) return null;
+  const m = text.match(/[.!?]\s/);
+  if (m && m.index >= 60) {
+    text = text.substring(0, m.index + 1);
+  } else if (text.length > 220) {
+    text = text.substring(0, 220).trim() + '…';
+  }
+  text = text.replace(/^\s*\d+\s*[).\-:]\s*/, '');
+  text = text.replace(/^(step|part)\s*\d+[:).\-]\s*/i, '');
+  return text;
+}
+
+function extractMeta(html, attr, value) {
+  const re1 = new RegExp('<meta[^>]*' + attr + '=["\']' + value + '["\'][^>]*content=["\'](.*?)["\']', 'is');
+  const re2 = new RegExp('<meta[^>]*content=["\'](.*?)["\'][^>]*' + attr + '=["\']' + value + '["\']', 'is');
+  const m = html.match(re1) || html.match(re2);
+  return m ? m[1] : null;
+}
+
+function stripHtml(s) { return s.replace(/<[^>]+>/g, ' '); }
+function normalizeSpaces(s) { return s.replace(/\s+/g, ' '); }
+function decodeEntities(s) {
+  return s
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}
