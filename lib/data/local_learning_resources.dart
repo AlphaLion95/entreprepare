@@ -21,6 +21,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'Get matched with mentors and access business templates.',
     'tags': ['Mentoring', 'Templates', 'SCORE'],
     'url': 'https://www.score.org/',
+    'coverImage': 'https://study.com/cimages/videopreview/videopreview-full/np63q5ej91.jpg',
     'category': 'Article',
     'author': 'SCORE',
     'createdAt':
@@ -33,6 +34,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'tags': ['Legal', 'Tax', 'US'],
     'url':
         'https://www.irs.gov/businesses/small-businesses-self-employed/apply-for-an-employer-identification-number-ein-online',
+    'coverImage': 'https://howtostartanllc.com/images/ein/employer-identification-number.png',
     'category': 'Article',
     'author': 'IRS',
     'createdAt':
@@ -45,6 +47,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
         'Learn bookkeeping basics, financial statements, and best practices.',
     'tags': ['Accounting', 'Finance'],
     'url': 'https://quickbooks.intuit.com/r/bookkeeping/what-is-accounting/',
+    'coverImage': 'https://www.lessaccounting.com/wp-content/uploads/2023/09/LA-Blog-Cover-Photos-31-1024x576.png',
     'category': 'Article',
     'author': 'Intuit QuickBooks',
     'createdAt':
@@ -57,6 +60,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
         'How CRMs help manage sales pipelines and customer relationships.',
     'tags': ['Sales', 'CRM'],
     'url': 'https://blog.hubspot.com/sales/what-is-a-crm',
+    'coverImage': 'https://www.xcitium.com/blog/wp-content/uploads/2025/08/whats-a-crm.png',
     'category': 'Article',
     'author': 'HubSpot',
     'createdAt':
@@ -79,6 +83,7 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'summary': 'Official guide to register a business name with DTI.',
     'tags': ['Legal', 'Registration', 'PH'],
     'url': 'https://bnrs.dti.gov.ph/',
+    'coverImage': 'https://dtibnrs.s3-ap-southeast-1.amazonaws.com/files/20250403/1dizoykjde0821.jpg',
     'category': 'Article',
     'author': 'DTI Philippines',
     'createdAt':
@@ -89,8 +94,8 @@ final List<Map<String, dynamic>> kLocalLearningResources = [
     'title': 'BIR Registration for New Business (Philippines)',
     'summary': 'How to register with the Bureau of Internal Revenue.',
     'tags': ['Tax', 'Legal', 'PH'],
-    'url':
-        'https://www.bir.gov.ph/index.php/registration-requirements/primary-registration/application-for-registration.html',
+    'url': 'https://sugbo.ph/2022/guide-bir-registration/',
+    'coverImage': 'https://baivigroup.com/wp-content/uploads/2021/04/how-to-register-your-business-with-BIR.jpg',
     'category': 'Article',
     'author': 'BIR Philippines',
     'createdAt':
