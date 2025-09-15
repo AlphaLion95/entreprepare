@@ -9,9 +9,9 @@ import '../models/business.dart';
 import '../screens/quiz/quiz_screen.dart';
 import 'business/business_detail_screen.dart';
 import '../services/plan_service.dart' as ps;
-import '../services/settings_service.dart' as ss;
 import '../models/plan.dart';
 import '../utils/currency_utils.dart';
+import '../services/currency_scope.dart';
 import 'planner/plan_detail_screen.dart';
 import 'planner/plan_list_screen.dart';
 
@@ -26,29 +26,21 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final BusinessService _businessService = BusinessService();
   final ps.PlanService _planService = ps.PlanService();
-  final ss.SettingsService _settingsSvc = ss.SettingsService();
   bool _loading = true;
   bool _quizCompleted = false;
   List<Business> _topBusinesses = [];
   List<Business> _savedBusinesses = [];
   List<Plan> _plans = [];
-  String _currency = 'PHP';
-  StreamSubscription<ss.Settings?>? _settingsSub;
+  // Currency now provided globally by CurrencyScope
 
   @override
   void initState() {
     super.initState();
-    // Listen to settings once; avoid re-registering on pull-to-refresh
-    _settingsSub = _settingsSvc.watchSettings().listen((s) {
-      if (!mounted) return;
-      setState(() => _currency = (s?.currency ?? 'PHP'));
-    });
     _initializeHome();
   }
 
   @override
   void dispose() {
-    _settingsSub?.cancel();
     super.dispose();
   }
 
@@ -203,7 +195,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final tag = 'business-${b.docId ?? b.title}';
 
-    return InkWell(
+  final currency = CurrencyScope.of(context).currency;
+  return InkWell(
       onTap: () {
         Navigator.push(
           context,
@@ -349,8 +342,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       spacing: 6,
                       children: [
                         Chip(
-                          label: Text(
-                            'Net: ${formatCurrency(p.monthlyNetProfit, _currency)}',
+                          label: Builder(
+                            builder: (ctx) => Text('Net: ${formatCurrency(p.monthlyNetProfit, CurrencyScope.of(ctx).currency)}'),
                           ),
                           visualDensity: VisualDensity.compact,
                         ),

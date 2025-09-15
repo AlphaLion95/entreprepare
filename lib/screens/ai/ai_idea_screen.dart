@@ -62,10 +62,16 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
   }
 
   Future<void> _runHealthCheck() async {
-    setState(() { _healthLoading = true; });
+    setState(() {
+      _healthLoading = true;
+    });
     final svc = AiHealthService();
     final h = await svc.check();
-    if (mounted) setState(() { _health = h; _healthLoading = false; });
+    if (mounted)
+      setState(() {
+        _health = h;
+        _healthLoading = false;
+      });
   }
 
   Future<void> _runIdeas() async {
@@ -82,7 +88,9 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
       if (!mounted) return;
       setState(() {
         _ideaError = AiErrorMapper.map(e);
-        _ideaErrorCode = e.toString().contains('missing_type') ? 'missing_type' : '';
+        _ideaErrorCode = e.toString().contains('missing_type')
+            ? 'missing_type'
+            : '';
       });
     } finally {
       if (mounted) setState(() => _loadingIdeas = false);
@@ -103,7 +111,9 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
       if (!mounted) return;
       setState(() {
         _solutionError = AiErrorMapper.map(e);
-        _solutionErrorCode = e.toString().contains('missing_type') ? 'missing_type' : '';
+        _solutionErrorCode = e.toString().contains('missing_type')
+            ? 'missing_type'
+            : '';
       });
     } finally {
       if (mounted) setState(() => _loadingSolutions = false);
@@ -141,11 +151,10 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
               ),
             )
             .toList(),
-        milestones: (planGen.milestones.isNotEmpty
-                ? planGen.milestones
-                : s.steps)
-            .map((m) => Milestone(id: const Uuid().v4(), title: m))
-            .toList(),
+        milestones:
+            (planGen.milestones.isNotEmpty ? planGen.milestones : s.steps)
+                .map((m) => Milestone(id: const Uuid().v4(), title: m))
+                .toList(),
         expenses: planGen.expenses
             .map(
               (e) => ExpenseItem(
@@ -160,7 +169,7 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
         operatingMarginPct: clampPct(planGen.operatingMarginPct),
         breakevenMonths: clampNonNeg(planGen.breakevenMonths),
         createdAt: DateTime.now(),
-  planVersion: planGen.planVersion,
+        planVersion: planGen.planVersion,
       );
       final id = await _planService.createPlan(plan);
       if (!mounted) return;
@@ -174,9 +183,9 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Plan generation failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Plan generation failed: $e')));
     } finally {
       if (mounted) setState(() => _creatingPlan = false);
     }
@@ -381,9 +390,19 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: TextButton.icon(
-                                      onPressed: _creatingPlan || (!(_health?.planSupported ?? true) && !_overridePlanLock) ? null : () => _addSuggestionToPlan(s),
+                                      onPressed:
+                                          _creatingPlan ||
+                                              (!(_health?.planSupported ??
+                                                      true) &&
+                                                  !_overridePlanLock)
+                                          ? null
+                                          : () => _addSuggestionToPlan(s),
                                       icon: const Icon(Icons.add_task),
-                                      label: Text(_creatingPlan ? 'Creating…' : 'Add to Plan'),
+                                      label: Text(
+                                        _creatingPlan
+                                            ? 'Creating…'
+                                            : 'Add to Plan',
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -402,7 +421,9 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
 
   @override
   Widget build(BuildContext context) {
-    final showTypeBanner = _ideaErrorCode == 'missing_type' || _solutionErrorCode == 'missing_type';
+    final showTypeBanner =
+        _ideaErrorCode == 'missing_type' ||
+        _solutionErrorCode == 'missing_type';
     return Scaffold(
       appBar: AppBar(
         title: const Text('AI Assist'),
@@ -416,36 +437,57 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
       ),
       body: Column(
         children: [
-          if (_healthLoading)
-            const LinearProgressIndicator(minHeight: 2),
-          if (!_healthLoading && _health != null && _health!.planSupported && _showHealthBanner)
+          if (_healthLoading) const LinearProgressIndicator(minHeight: 2),
+          if (!_healthLoading &&
+              _health != null &&
+              _health!.planSupported &&
+              _showHealthBanner)
             Material(
               color: Colors.green.shade50,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.green,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'AI backend ready (v${_health!.version ?? '?'}) • Plan generation enabled',
-                        style: const TextStyle(fontSize: 12, color: Colors.green),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.green,
+                        ),
                       ),
                     ),
                     IconButton(
                       padding: EdgeInsets.zero,
                       onPressed: _runHealthCheck,
-                      icon: const Icon(Icons.refresh, size: 18, color: Colors.green),
+                      icon: const Icon(
+                        Icons.refresh,
+                        size: 18,
+                        color: Colors.green,
+                      ),
                       tooltip: 'Re-check',
                     ),
                     IconButton(
                       padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.close, size: 18, color: Colors.green),
+                      icon: const Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Colors.green,
+                      ),
                       tooltip: 'Dismiss',
-                      onPressed: ()=> setState(()=> _showHealthBanner = false),
-                    )
+                      onPressed: () =>
+                          setState(() => _showHealthBanner = false),
+                    ),
                   ],
                 ),
               ),
@@ -454,17 +496,28 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
             Material(
               color: Colors.red.shade50,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 18),
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.red,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Backend AI version: ${_health!.version ?? '?'} (need >=4). Reachable: ${_health!.reachable}. Message: ${_health!.message ?? '-'}' +
-                        (_health!.rawSnippet!=null ? '\nSnippet: ${_health!.rawSnippet}' : '') +
-                        (!_overridePlanLock ? '\nAdd to Plan disabled until backend updated or FORCE pressed.' : '\nOverride active: attempting generation anyway.') ,
+                            (_health!.rawSnippet != null
+                                ? '\nSnippet: ${_health!.rawSnippet}'
+                                : '') +
+                            (!_overridePlanLock
+                                ? '\nAdd to Plan disabled until backend updated or FORCE pressed.'
+                                : '\nOverride active: attempting generation anyway.'),
                         style: const TextStyle(fontSize: 12, color: Colors.red),
                       ),
                     ),
@@ -476,9 +529,13 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
                     ),
                     if (!_overridePlanLock)
                       TextButton(
-                        onPressed: () => setState(()=> _overridePlanLock = true),
-                        child: const Text('FORCE', style: TextStyle(fontSize: 11)),
-                      )
+                        onPressed: () =>
+                            setState(() => _overridePlanLock = true),
+                        child: const Text(
+                          'FORCE',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -488,17 +545,28 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
               color: Colors.amber.shade100,
               elevation: 1,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal:12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     const Icon(Icons.info_outline, size: 18),
                     const SizedBox(width: 8),
-                    Expanded(child: Text('Server reported missing_type. Client must send {"type":"..."}. Update or redeploy backend if this persists.', style: const TextStyle(fontSize: 12))),
+                    Expanded(
+                      child: Text(
+                        'Server reported missing_type. Client must send {"type":"..."}. Update or redeploy backend if this persists.',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
                     IconButton(
                       icon: const Icon(Icons.close, size: 18),
-                      onPressed: () => setState(() { _ideaErrorCode=''; _solutionErrorCode=''; }),
+                      onPressed: () => setState(() {
+                        _ideaErrorCode = '';
+                        _solutionErrorCode = '';
+                      }),
                       tooltip: 'Dismiss',
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -506,7 +574,7 @@ class _AiIdeaScreenState extends State<AiIdeaScreen>
           Expanded(
             child: TabBarView(
               controller: _tab,
-              children: [_buildIdeasTab(), _buildProblemSolverTab() ],
+              children: [_buildIdeasTab(), _buildProblemSolverTab()],
             ),
           ),
         ],

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/settings_service.dart';
+import '../services/currency_scope.dart';
 import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -14,7 +15,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final SettingsService _svc = SettingsService();
 
   bool _loading = true;
-  String _currency = 'PHP';
+  String? _draftCurrency; // local draft before saving
 
   @override
   void initState() {
@@ -24,25 +25,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
+    final notifier = CurrencyScope.of(context);
     final s = await _svc.fetchSettings();
     if (s != null && mounted) {
-      setState(() {
-        _currency = s.currency;
-      });
+      _draftCurrency = s.currency;
+    } else {
+      _draftCurrency = notifier.currency;
     }
     if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _save() async {
     setState(() => _loading = true);
+    final selected = (_draftCurrency ?? CurrencyScope.of(context).currency).toUpperCase();
     final settings = Settings(
-      currency: _currency,
+      currency: selected,
       plan: 'trial',
       features: {},
       updatedAt: DateTime.now(),
     );
     try {
       await _svc.saveSettings(settings);
+      // update notifier immediately
+      await CurrencyScope.of(context).setCurrency(selected);
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -62,6 +67,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final currencies = ['PHP', 'USD', 'EUR'];
+    final current = CurrencyScope.of(context).currency;
+    final value = _draftCurrency ?? current;
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: _loading
@@ -81,15 +88,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String>(
-                          value: _currency,
+                          value: value,
                           items: currencies
                               .map(
                                 (c) =>
                                     DropdownMenuItem(value: c, child: Text(c)),
                               )
                               .toList(),
-                          onChanged: (v) =>
-                              setState(() => _currency = v ?? _currency),
+                          onChanged: (v) => setState(() => _draftCurrency = v ?? value),
                           decoration: const InputDecoration(
                             border: OutlineInputBorder(),
                           ),

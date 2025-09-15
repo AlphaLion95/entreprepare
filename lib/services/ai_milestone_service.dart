@@ -37,12 +37,17 @@ class AiMilestoneService {
       if (data['definition'] is String && data['steps'] is List) {
         return MilestoneSuggestion(
           definition: (data['definition'] as String).trim(),
-          steps: (data['steps'] as List).map((e)=>e.toString().trim()).where((s)=>s.isNotEmpty).toList(),
+          steps: (data['steps'] as List)
+              .map((e) => e.toString().trim())
+              .where((s) => s.isNotEmpty)
+              .toList(),
         );
       }
       throw Exception('Malformed milestone response');
     } on AiApiException catch (e) {
-      throw Exception('AI milestone failed: ${e.code}${e.message!=null?': '+e.message!:''}');
+      throw Exception(
+        'AI milestone failed: ${e.code}${e.message != null ? ': ' + e.message! : ''}',
+      );
     }
   }
 }

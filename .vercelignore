@@ -1,0 +1,20 @@
+# Exclude large build artifacts and platform folders not needed for serverless API
+build/
+android/
+ios/
+.git/
+.gitignore
+.flutter-plugins-dependencies
+.metadata
+.history/
+.vscode/
+.idea/
+# Dart/Flutter specific caches
+.dart_tool/
+# Node modules not required (only api/ai.js uses fetch + built-ins; if functions/ needs firebase-admin keep package.json but not full node_modules if too large)
+# If firebase-admin needed in serverless function, keep node_modules; comment out next line if required
+git-filter-repo-main/
+# Ignore test assets
+scripts/serviceAccountKey.json
+# Optional: ignore assets if not served directly
+assets/

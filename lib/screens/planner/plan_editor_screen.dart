@@ -4,6 +4,7 @@ import '../../models/plan.dart';
 import '../../models/business.dart';
 import '../../services/plan_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/currency_scope.dart';
 import '../../utils/currency_utils.dart';
 import '../../utils/plan_templates.dart';
 import '../main_tabs_page.dart';
@@ -32,20 +33,14 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
   List<Milestone> _milestones = [];
   final AiMilestoneService _aiMilestoneService = AiMilestoneService();
   List<ExpenseItem> _expenses = [];
-  String _currency = 'PHP';
-  late final Stream<Settings?> _settingsStream;
+  // currency now from CurrencyScope
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
     _applyPrefill();
-    _loadSettings();
-    _settingsStream = _settingsSvc.watchSettings();
-    _settingsStream.listen((s) {
-      if (!mounted) return;
-      setState(() => _currency = (s?.currency ?? _currency));
-    });
+    _loadSettings(); // still loads other settings if needed (could remove currency logic)
   }
 
   void _applyPrefill() {
@@ -82,8 +77,7 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
   }
 
   Future<void> _loadSettings() async {
-    final s = await _settingsSvc.fetchSettings();
-    if (s != null && mounted) setState(() => _currency = s.currency);
+    await _settingsSvc.fetchSettings(); // currency handled globally
   }
 
   Future<void> _savePlan({bool editAfter = false}) async {
@@ -416,7 +410,7 @@ class _PlanEditorScreenState extends State<PlanEditorScreen> {
     }
   }
 
-  String _fmtCurrency(double v) => formatCurrency(v, _currency);
+  String _fmtCurrency(double v) => formatCurrency(v, CurrencyScope.of(context).currency);
 
   double get _monthlyRevenue {
     final price = double.tryParse(_priceCtl.text) ?? 0.0;

@@ -10,7 +10,8 @@ export default async function handler(req, res) {
   const allowOriginHeader = allowedOrigins.includes('*') || allowedOrigins.includes(origin) ? origin || '*' : allowedOrigins[0] || '*';
   res.setHeader('Access-Control-Allow-Origin', allowOriginHeader);
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Groq-Key');
+  // Allow custom auth headers
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Groq-Key, X-App-Secret');
   res.setHeader('Cache-Control', 'no-store');
   if (req.method === 'OPTIONS') return res.status(204).end();
 
@@ -22,14 +23,16 @@ export default async function handler(req, res) {
       'llama-3.1-8b-instant',
       'mixtral-8x7b-32768'
     ].filter(Boolean);
+    const codeVersion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown';
     return res.status(200).json({
       message: 'Groq AI endpoint ready. POST JSON to use.',
       version: 4,
-      codeVersion: 'fallback-v2',
+      codeVersion,
       configured: !!process.env.GROQ_API_KEY,
       configuredModel,
       modelCandidates,
-      planSupported: true
+      planSupported: true,
+      strictModelSupported: true
     });
   }
 
@@ -67,19 +70,47 @@ export default async function handler(req, res) {
   }
 
   const body = req.body || {};
-  const { type, query, activity, problem, goal, title, limit, context, suggestion } = body;
+  const { type, query, activity, problem, goal, title, limit, context, suggestion, forceFallback, strictModel } = body;
   const requestReceivedAt = Date.now();
   if (aiDebug) {
     try {
       console.log('[ai-endpoint] incoming type:', type, 'keys:', Object.keys(body));
     } catch(_) {}
   }
-  if (!type) {
-    return res.status(400).json({ error: 'missing_type', hint: 'Provide type one of: ideas | solutions | milestone | plan | plan_financials' });
+  // Detect type if missing; default to 'ideas' for short/ambiguous inputs
+  let detected = String(type || '').toLowerCase();
+  if (!detected) {
+    if ((activity && problem)) detected = 'solutions';
+    else if (title) detected = 'milestone';
+    else detected = 'ideas';
   }
-  const detected = type;
 
   try {
+  // Optional testing bypass to exercise heuristic fallbacks without calling model
+  if (forceFallback && typeof forceFallback === 'boolean') {
+    const detectedFF = String(type).toLowerCase();
+    if (['ideas','solutions','milestone','search'].includes(detectedFF)) {
+      if (detectedFF === 'ideas') {
+        const safeLimit = sanitizeLimit(limit);
+        const ideas = heuristicIdeasFallback(query, safeLimit, true);
+  return res.json({ version: 4, codeVersion: process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown', modelUsed: 'heuristic', modelAttempt: 0, repaired: false, fallbackUsed: true, origin: 'forced', ideas, ideasDetailed: ideas.map(t=>({id:hashId(t), text:t})), requestMeta: { type: detectedFF, limit: safeLimit, queryLen: (query||'').length, receivedAt: requestReceivedAt }, forced: true });
+      }
+      if (detectedFF === 'solutions') {
+        const sols = heuristicSolutionsFallback(activity, problem, goal, limit);
+  return res.json({ version: 4, codeVersion: process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown', modelUsed: 'heuristic', modelAttempt: 0, repaired: false, fallbackUsed: true, origin: 'forced', solutions: sols, requestMeta: { type: detectedFF, limit: parseInt(limit||3,10), activityLen: (activity||'').length, problemLen: (problem||'').length, receivedAt: requestReceivedAt }, forced: true });
+      }
+      if (detectedFF === 'milestone') {
+        const ms = heuristicMilestoneFallback(title);
+  return res.json({ version: 4, codeVersion: process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown', modelUsed: 'heuristic', modelAttempt: 0, repaired: false, fallbackUsed: true, origin: 'forced', ...ms, requestMeta: { type: detectedFF, titleLen: (title||'').length, receivedAt: requestReceivedAt }, forced: true });
+      }
+      if (detectedFF === 'search') {
+        const safeLimit = sanitizeLimit(limit);
+        const results = heuristicSearchFallback(query, safeLimit);
+        const resultsDetailed = results.map(r=> ({ id: hashId(r.title + '|' + r.snippet), ...r }));
+  return res.json({ version: 4, codeVersion: process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown', modelUsed: 'heuristic', modelAttempt: 0, repaired: false, fallbackUsed: true, origin: 'forced', results, resultsDetailed, requestMeta: { type: detectedFF, limit: safeLimit, queryLen: (query||'').length, receivedAt: requestReceivedAt }, forced: true });
+      }
+    }
+  }
   // Preferred / multi-fallback model logic
   const configuredModel = process.env.GROQ_MODEL;
   const fallbackModels = [
@@ -171,14 +202,76 @@ export default async function handler(req, res) {
           const safeLimit = sanitizeLimit(limit);
           const ideas = heuristicIdeasFallback(query, safeLimit, true);
           const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
-            return res.json({
-              version: 3,
-              modelUsed: model,
-              modelAttempt,
-              repaired: false,
-              fallbackUsed: true,
-              ideas
-            });
+          const codeVersion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown';
+          const ideasDetailed = ideas.map(text => ({ id: hashId(text), text }));
+          const requestMeta = { type: detected, limit: safeLimit, queryLen: (query||'').length, receivedAt: requestReceivedAt };
+          const attempts = { modelCallMs, repair1Ms, repair2Ms, repaired: false, modelAttempt };
+          const resp = {
+            version: 4,
+            codeVersion,
+            modelUsed: model,
+            modelAttempt,
+            repaired: false,
+            fallbackUsed: true,
+            origin: 'fallback',
+            ideas,
+            ideasDetailed,
+            requestMeta
+          };
+          if (aiDebug) {
+            resp.debug = {
+              modelChainTried,
+              modelCallMs,
+              repair1Ms,
+              repair2Ms,
+              responseChars: (content||'').length,
+              attempts
+            };
+          }
+          return res.json(resp);
+        }
+        if (schemaKind === 'solutions') {
+          if (strictModel) return res.status(502).json({ error: 'parse_failed_strict', schema: 'solutions' });
+          const sols = heuristicSolutionsFallback(activity, problem, goal, limit);
+          const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
+          const codeVersion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown';
+          const requestMeta = { type: detected, limit: parseInt(limit||3,10), activityLen: (activity||'').length, problemLen: (problem||'').length, receivedAt: requestReceivedAt };
+          const attempts = { modelCallMs, repair1Ms, repaired: false, modelAttempt };
+          const resp = {
+            version: 4,
+            codeVersion,
+            modelUsed: model,
+            modelAttempt,
+            repaired: false,
+            fallbackUsed: true,
+            origin: 'fallback',
+            solutions: sols,
+            requestMeta
+          };
+          if (aiDebug) {
+            resp.debug = {
+              modelChainTried,
+              modelCallMs,
+              repair1Ms,
+              responseChars: (content||'').length,
+              attempts
+            };
+          }
+          return res.json(resp);
+        }
+        if (schemaKind === 'search') {
+          const safeLimit = sanitizeLimit(limit);
+          const results = heuristicSearchFallback(query, safeLimit);
+          const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
+          const codeVersion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown';
+          const requestMeta = { type: detected, limit: safeLimit, queryLen: (query||'').length, receivedAt: requestReceivedAt };
+          const attempts = { modelCallMs, repair1Ms, repaired: false, modelAttempt };
+          const resultsDetailed = results.map(r=> ({ id: hashId(r.title + '|' + r.snippet), ...r }));
+          const resp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired: false, fallbackUsed: true, origin: 'fallback', results, resultsDetailed, requestMeta };
+          if (aiDebug) {
+            resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, attempts };
+          }
+          return res.json(resp);
         }
         return res.status(502).json({ error: 'parse_failed', raw: truncate(content, 500) });
       }
@@ -192,6 +285,7 @@ export default async function handler(req, res) {
       if (!ideas.length) {
         const ok = await attemptRepair('empty_ideas_list');
         if (!ok) {
+          if (strictModel) return res.status(502).json({ error: 'empty_after_model_strict', schema: 'ideas' });
           ideas = heuristicIdeasFallback(query, safeLimit, true);
           fallbackUsed = true;
         } else {
@@ -223,14 +317,16 @@ export default async function handler(req, res) {
                 repair2Ms = Date.now() - tR20;
               }
             }
-            if (!ideas.length) { ideas = heuristicIdeasFallback(query, safeLimit, true); fallbackUsed = true; }
+            if (!ideas.length) {
+              if (strictModel) return res.status(502).json({ error: 'empty_after_repairs_strict', schema: 'ideas' });
+              ideas = heuristicIdeasFallback(query, safeLimit, true); fallbackUsed = true; }
           }
         }
       }
       // Final hard guard: never return empty array
       if (!ideas.length) {
-        ideas = heuristicIdeasFallback(query, safeLimit, true);
-        fallbackUsed = true;
+        if (strictModel) return res.status(502).json({ error: 'empty_final_strict', schema: 'ideas' });
+        ideas = heuristicIdeasFallback(query, safeLimit, true); fallbackUsed = true;
       }
       if (aiDebug) { try { console.log('[ai-debug] ideas-result', { count: ideas.length, repaired, fallbackUsed, modelCallMs, repair1Ms, repair2Ms }); } catch(_) {} }
       const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
@@ -240,7 +336,8 @@ export default async function handler(req, res) {
       const requestMeta = { type: detected, limit: safeLimit, queryLen: (query||'').length, receivedAt: requestReceivedAt };
       const attempts = { modelCallMs, repair1Ms, repair2Ms, repaired, modelAttempt };
       const usage = lastUsage || lastRepairUsage || lastRepair2Usage || null;
-      const resp = { version: 3, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed, ideas, ideasDetailed, requestMeta };
+  const origin = forcedOrigin(false, fallbackUsed, repaired);
+  const resp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed, origin, ideas, ideasDetailed, requestMeta };
       if (aiDebug) {
         resp.debug = {
           modelChainTried,
@@ -256,11 +353,19 @@ export default async function handler(req, res) {
     }
     if (schemaKind === 'solutions') {
       let sols = normalizeSolutions(parsed);
+      let fallbackUsed = false;
       if (!sols.length) {
         const ok = await attemptRepair('empty_solutions_list');
-        if (!ok) return res.status(502).json({ error: 'empty_solutions', raw: truncate(JSON.stringify(parsed), 600) });
-        sols = normalizeSolutions(parsed);
-        if (!sols.length) return res.status(502).json({ error: 'empty_solutions_after_repair' });
+        if (!ok) {
+          if (strictModel) return res.status(502).json({ error: 'empty_after_model_strict', schema: 'solutions' });
+          sols = heuristicSolutionsFallback(activity, problem, goal, limit); fallbackUsed = true;
+        } else {
+          sols = normalizeSolutions(parsed);
+          if (!sols.length) {
+            if (strictModel) return res.status(502).json({ error: 'empty_after_repair_strict', schema: 'solutions' });
+            sols = heuristicSolutionsFallback(activity, problem, goal, limit); fallbackUsed = true;
+          }
+        }
       }
       if (aiDebug) { try { console.log('[ai-debug] solutions-result', { count: sols.length, repaired, modelCallMs, repair1Ms }); } catch(_) {} }
       const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
@@ -268,7 +373,8 @@ export default async function handler(req, res) {
       const requestMeta = { type: detected, limit: parseInt(limit||3,10), activityLen: (activity||'').length, problemLen: (problem||'').length, receivedAt: requestReceivedAt };
       const attempts = { modelCallMs, repair1Ms, repaired, modelAttempt };
       const usage = lastUsage || lastRepairUsage || null;
-      const resp = { version: 2, codeVersion, modelUsed: model, modelAttempt, repaired, solutions: sols, requestMeta };
+  const origin = forcedOrigin(false, fallbackUsed, repaired);
+  const resp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed, origin, solutions: sols, requestMeta };
       if (aiDebug) {
         resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, usage, attempts };
       }
@@ -276,11 +382,19 @@ export default async function handler(req, res) {
     }
     if (schemaKind === 'milestone') {
       let ms = normalizeMilestone(parsed);
+      let fallbackUsed = false;
       if (!ms.definition || !ms.steps.length) {
         const ok = await attemptRepair('invalid_milestone_shape');
-        if (!ok) return res.status(502).json({ error: 'invalid_milestone', raw: truncate(JSON.stringify(parsed), 600) });
-        ms = normalizeMilestone(parsed);
-        if (!ms.definition || !ms.steps.length) return res.status(502).json({ error: 'invalid_milestone_after_repair' });
+        if (!ok) {
+          if (strictModel) return res.status(502).json({ error: 'invalid_after_model_strict', schema: 'milestone' });
+          ms = heuristicMilestoneFallback(title); fallbackUsed = true;
+        } else {
+          ms = normalizeMilestone(parsed);
+          if (!ms.definition || !ms.steps.length) {
+            if (strictModel) return res.status(502).json({ error: 'invalid_after_repair_strict', schema: 'milestone' });
+            ms = heuristicMilestoneFallback(title); fallbackUsed = true;
+          }
+        }
       }
       if (aiDebug) { try { console.log('[ai-debug] milestone-result', { steps: (ms.steps||[]).length, repaired, modelCallMs, repair1Ms }); } catch(_) {} }
       const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
@@ -288,7 +402,8 @@ export default async function handler(req, res) {
       const requestMeta = { type: detected, titleLen: (title||'').length, receivedAt: requestReceivedAt };
       const attempts = { modelCallMs, repair1Ms, repaired, modelAttempt };
       const usage = lastUsage || lastRepairUsage || null;
-      const resp = { version: 2, codeVersion, modelUsed: model, modelAttempt, repaired, ...ms, requestMeta };
+  const origin = forcedOrigin(false, fallbackUsed, repaired);
+  const resp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed, origin, ...ms, requestMeta };
       if (aiDebug) {
         resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, usage, attempts };
       }
@@ -308,7 +423,8 @@ export default async function handler(req, res) {
       const requestMeta = { type: detected, contextLen: (context||'').length, suggestionLen: (suggestion||'').length, receivedAt: requestReceivedAt };
       const attempts = { modelCallMs, repair1Ms, repaired, modelAttempt };
       const usage = lastUsage || lastRepairUsage || null;
-      const baseResp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, planVersion: derived.planVersion || 1, plan: derived, requestMeta };
+  const origin = forcedOrigin(false, false, repaired);
+  const baseResp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed: false, origin, planVersion: derived.planVersion || 1, plan: derived, requestMeta };
       if (aiDebug) {
         baseResp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, usage, attempts };
       }
@@ -335,6 +451,29 @@ export default async function handler(req, res) {
       if (aiDebug) { try { console.log('[ai-debug] plan-result', { title: derived.title, warnings: (derived.validationWarnings||[]).length }); } catch(_) {} }
       return res.json(baseResp);
     }
+    if (schemaKind === 'search') {
+      const safeLimit = sanitizeLimit(limit);
+      let results = normalizeSearch(parsed, safeLimit);
+      let fallbackUsed = false;
+      if (!results.length) {
+        const ok = await attemptRepair('empty_search_results');
+        if (ok) results = normalizeSearch(parsed, safeLimit);
+        if (!results.length) {
+          if (strictModel) return res.status(502).json({ error: 'empty_after_model_strict', schema: 'search' });
+          results = heuristicSearchFallback(query, safeLimit); fallbackUsed = true; }
+      }
+      if (aiDebug) { try { console.log('[ai-debug] search-result', { count: results.length, repaired, fallbackUsed, modelCallMs, repair1Ms }); } catch(_) {} }
+      const modelAttempt = modelChainTried.indexOf(model) + 1 || 1;
+      const codeVersion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.CODE_VERSION || 'unknown';
+      const requestMeta = { type: detected, limit: safeLimit, queryLen: (query||'').length, receivedAt: requestReceivedAt };
+      const attempts = { modelCallMs, repair1Ms, repaired, modelAttempt };
+      const usage = lastUsage || lastRepairUsage || null;
+  const resultsDetailed = results.map(r=> ({ id: hashId(r.title + '|' + r.snippet), ...r }));
+  const origin = forcedOrigin(false, fallbackUsed, repaired);
+  const resp = { version: 4, codeVersion, modelUsed: model, modelAttempt, repaired, fallbackUsed, origin, results, resultsDetailed, requestMeta };
+      if (aiDebug) { resp.debug = { modelChainTried, modelCallMs, repair1Ms, responseChars: (content||'').length, usage, attempts }; }
+      return res.json(resp);
+    }
     return res.status(500).json({ error: 'unexpected_branch' });
   } catch (e) {
     return res.status(500).json({ error: 'proxy_error', detail: e.message });
@@ -345,10 +484,12 @@ function buildPrompt({ detected, query, activity, problem, goal, title, limit, c
   let prompt = '';
   let schemaKind = detected;
   if (detected === 'ideas') {
-    if (!query) { res.status(400).json({ error: 'missing_query' }); return {}; }
     const n = Math.min(parseInt(limit || 8, 10), 12);
-    // Lightweight normalization to reduce model confusion on pluralization / grammar
-    let nq = String(query).trim();
+    // Build a normalized topic from any provided text; allow empty -> generic
+    const allStrings = [query, title, problem, goal, activity]
+      .map(v => String(v||'').trim())
+      .filter(Boolean);
+    let nq = allStrings.join(' ').trim() || 'general small business ideas';
     nq = nq.replace(/\bfoods\b/gi, 'food');
     // If singular 'product' appears and 'products' does not, pluralize for diversity
     if (/\bproduct\b/i.test(nq) && !/\bproducts\b/i.test(nq)) {
@@ -357,12 +498,13 @@ function buildPrompt({ detected, query, activity, problem, goal, title, limit, c
     // Strengthen instruction: EXACTLY N distinct ideas, forbid numbering/commentary
     prompt = `Generate EXACTLY ${n} distinct concise (5-12 words) actionable startup or small business ideas about: ${nq}. Output STRICT JSON ONLY: {"ideas":["idea 1","idea 2", "idea 3"]}. No numbering, no commentary, no markdown. Ideas must be unique and specific.`;
   } else if (detected === 'solutions') {
-    if (!activity || !problem) { res.status(400).json({ error: 'missing_fields' }); return {}; }
     const n = Math.min(parseInt(limit || 3, 10), 5);
-    prompt = `Activity: ${activity}\nProblem: ${problem}\nGoal: ${goal || ''}\nGenerate ${n} solution objects. Strict JSON ONLY: {"solutions":[{"title":"","rationale":"","steps":["step1","step2"]}]}. Title <=6 words; rationale EXACTLY 1 sentence; each solution has 4-6 concrete imperative steps.`;
+    const fallbackActivity = String(activity || title || query || 'General business').trim();
+    const fallbackProblem = String(problem || query || goal || 'General challenge to solve').trim();
+    prompt = `Activity: ${fallbackActivity}\nProblem: ${fallbackProblem}\nGoal: ${goal || ''}\nGenerate ${n} solution objects. Strict JSON ONLY: {"solutions":[{"title":"","rationale":"","steps":["step1","step2"]}]}. Title <=6 words; rationale EXACTLY 1 sentence; each solution has 4-6 concrete imperative steps.`;
   } else if (detected === 'milestone') {
-    if (!title) { res.status(400).json({ error: 'missing_title' }); return {}; }
-    prompt = `Milestone: ${title}\nReturn strict JSON: {"definition":"","steps":["step1","step2"]}. Definition <=22 words; include exactly 5 specific steps.`;
+    const t = String(title || query || problem || goal || activity || 'Core Milestone').trim();
+    prompt = `Milestone: ${t}\nReturn strict JSON: {"definition":"","steps":["step1","step2"]}. Definition <=22 words; include exactly 5 specific steps.`;
   } else if (detected === 'plan') {
     if (!context && !suggestion) { res.status(400).json({ error: 'missing_context' }); return {}; }
     // We accept either a raw context paragraph(s) or a selected suggestion (strategy) to build a financial + execution plan.
@@ -387,12 +529,22 @@ function buildPrompt({ detected, query, activity, problem, goal, title, limit, c
     const base = context || '';
     /* We ask model to refresh ONLY financial drivers but still output full schema so normalization works. */
     prompt = `Existing plan context (do NOT radically change narrative):\n${base}\nRefresh ONLY financial assumptions (pricing, sales.estMonthlyUnits, sales.growthPctMonth, inventory costs, expenses, metrics percentages & breakeven). Keep title, summary, milestones, innovations largely stable unless numbers force small adjustment. Output STRICT JSON ONLY with full plan schema: {"title":"","summary":"","pricing":{"pricePerUnit":0,"capitalRequired":0},"sales":{"estMonthlyUnits":0,"assumptions":[""],"growthPctMonth":0},"inventory":[{"name":"","qty":0,"unitCost":0}],"expenses":[{"name":"","monthlyCost":0}],"milestones":[""],"innovations":[""],"metrics":{"grossMarginPct":0,"operatingMarginPct":0,"breakevenMonths":0}}. Rules: pricePerUnit>0; all costs >=0; growthPctMonth typical 0-500 (absolute hard max 10000). No extra keys. No commentary.`;
+  } else if (detected === 'search') {
+    // Allow empty query: still produce heuristic generic discovery set if model fails.
+    const safeQuery = String(query||'').trim();
+    const n = Math.min(parseInt(limit || 8, 10), 12);
+    // Search = semantic topical result set (not real web) but must ALWAYS yield items.
+    // We ask for relevance descending. If query empty, instruct model to infer broadly useful startup strategy topics.
+    const queryInstruction = safeQuery
+      ? `Query: ${safeQuery}`
+      : 'Query: (empty) Provide broadly useful actionable startup or small business strategy topics';
+    prompt = `${queryInstruction}\nReturn STRICT JSON ONLY: {"results":[{"title":"","snippet":"","relevance":0}]}. Generate EXACTLY ${n} diverse, high-signal, concise results ordered by descending relevance (100=best). Title 3-9 words, snippet 12-28 words, relevance integer 40-100. No markdown, no extra keys.`;
   } else {
     // Enhanced diagnostics for easier client debugging
     res.status(400).json({
       error: 'unsupported_type',
       received_type: detected,
-      allowed_types: ['ideas','solutions','milestone','plan','plan_financials'],
+      allowed_types: ['ideas','solutions','milestone','plan','plan_financials','search'],
       hint: 'Deploy latest backend ensuring plan & plan_financials branches exist.'
     });
     return {};
@@ -459,7 +611,17 @@ function buildRepairInstruction(schemaKind, reason, previousRaw) {
   if (schemaKind === 'plan' || schemaKind === 'plan_financials') {
     return `${baseNote} Schema: {"title":"","summary":"","pricing":{"pricePerUnit":0,"capitalRequired":0},"sales":{"estMonthlyUnits":0,"assumptions":[""],"growthPctMonth":0},"inventory":[{"name":"","qty":0,"unitCost":0}],"expenses":[{"name":"","monthlyCost":0}],"milestones":[""],"innovations":[""],"metrics":{"grossMarginPct":0,"operatingMarginPct":0,"breakevenMonths":0}}. Follow all numeric constraints. No extra keys.`;
   }
+  if (schemaKind === 'search') {
+    return `${baseNote} Schema: {"results":[{"title":"","snippet":"","relevance":0}]}. Provide 6-12 results ordered by descending relevance (integer 40-100). Title 3-9 words, snippet 12-28 words.`;
+  }
   return '';
+}
+
+function forcedOrigin(forced, fallbackUsed, repaired) {
+  if (forced) return 'forced';
+  if (fallbackUsed) return 'fallback';
+  if (repaired) return 'repaired';
+  return 'model';
 }
 
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -496,6 +658,16 @@ function normalizeMilestone(obj) {
     definition: String(obj.definition || '').trim(),
     steps: Array.isArray(obj.steps) ? obj.steps.map(x=>String(x).trim()).filter(Boolean).slice(0,7) : []
   };
+}
+
+function normalizeSearch(obj, limitRaw) {
+  const limit = sanitizeLimit(limitRaw, 8, 12);
+  const arr = Array.isArray(obj.results) ? obj.results : [];
+  return arr.map(r => ({
+    title: String(r.title||'').trim().slice(0,120),
+    snippet: String(r.snippet||'').trim().slice(0,320),
+    relevance: Math.max(0, Math.min(100, parseInt(r.relevance||0,10)))
+  })).filter(r => r.title && r.snippet).sort((a,b)=> b.relevance - a.relevance).slice(0, limit);
 }
 
 function normalizePlan(obj) {
@@ -674,4 +846,104 @@ function hashId(text) {
   }
   // Convert to unsigned and base36 shorten
   return 'i_' + (h >>> 0).toString(36);
+}
+
+// Heuristic fallback for solutions when model fails
+function heuristicSolutionsFallback(activity, problem, goal, limitRaw) {
+  const limit = sanitizeLimit(limitRaw || 3, 3, 5);
+  const baseActivity = (activity || 'business activity').trim();
+  const baseProblem = (problem || 'common challenge').trim();
+  const ideas = [
+    {
+      title: 'Clarify Core Issue',
+      rationale: 'Establish a precise shared understanding before investing effort.',
+      steps: [
+        'List top 3 pain points',
+        'Rank by impact and urgency',
+        'Define success in 1 sentence',
+        'Choose single primary objective'
+      ]
+    },
+    {
+      title: 'Lightweight Pilot Test',
+      rationale: 'Validate a minimal approach with fast feedback and low risk.',
+      steps: [
+        'Pick smallest viable test scope',
+        'Draft quick checklist for execution',
+        'Run pilot with limited audience',
+        'Collect feedback in structured format',
+        'Decide iterate or expand'
+      ]
+    },
+    {
+      title: 'Process Simplification Sprint',
+      rationale: 'Eliminate avoidable complexity slowing consistent progress.',
+      steps: [
+        'Map current workflow steps',
+        'Mark friction or delays',
+        'Remove or merge low-value steps',
+        'Document new streamlined flow'
+      ]
+    },
+    {
+      title: 'Metrics Alignment Setup',
+      rationale: 'Create objective signals guiding iteration confidently.',
+      steps: [
+        'Select 2 leading indicators',
+        'Define simple tracking sheet',
+        'Review metrics weekly',
+        'Set threshold triggers for action'
+      ]
+    },
+    {
+      title: 'Stakeholder Feedback Loop',
+      rationale: 'Incorporate real user or team insight early to avoid misalignment.',
+      steps: [
+        'Identify 3 representative stakeholders',
+        'Schedule recurring short sync',
+        'Share concise progress snapshot',
+        'Capture decisions and adjustments'
+      ]
+    }
+  ];
+  return ideas.slice(0, limit);
+}
+
+// Heuristic fallback for milestone
+function heuristicMilestoneFallback(title) {
+  const t = (title || 'Core Milestone').trim();
+  return {
+    definition: `Foundational progress toward: ${t}`.slice(0, 120),
+    steps: [
+      'Define exact success criteria',
+      'List essential sub-deliverables',
+      'Assign single owner per deliverable',
+      'Set review and checkpoint dates',
+      'Capture risks and mitigation actions'
+    ]
+  };
+}
+
+function heuristicSearchFallback(query, limitRaw) {
+  const limit = sanitizeLimit(limitRaw, 8, 12);
+  const q = (String(query||'').trim() || 'business strategy').toLowerCase();
+  const bases = [
+    { t: 'Core Overview Guide', s: 'High-level orientation, core concepts, early missteps to avoid, initial leverage points.', r: 96 },
+    { t: 'Strategic Framing Insight', s: 'How to convert broad intent into structured actionable focus and sequencing.', r: 92 },
+    { t: 'Validation Workflow Outline', s: 'Lean loops to test demand signals and refine offering before scaling effort.', r: 89 },
+    { t: 'Key Metrics Snapshot', s: 'Essential quantitative indicators to track traction, efficiency, and retention early.', r: 86 },
+    { t: 'Execution Roadmap Draft', s: 'Suggested phased progression balancing build, learning, and commercialization.', r: 83 },
+    { t: 'Risk Pattern Breakdown', s: 'Common failure patterns, detection signals, and mitigation leverage points.', r: 80 },
+    { t: 'Pricing & Value Signals', s: 'Approaches to exploring willingness to pay and refining value articulation.', r: 77 },
+    { t: 'Growth Experiment Seeds', s: 'Lightweight demand generation trial ideas prioritized by learning speed.', r: 74 },
+    { t: 'Capital Efficiency Levers', s: 'Practical ways to extend runway while compounding validated learning.', r: 71 },
+    { t: 'Capability Build Stack', s: 'Minimal tool and process stack supporting iteration velocity and clarity.', r: 68 }
+  ];
+  const tokens = q.split(/\s+/).filter(t=>t.length>3).slice(0,2);
+  const results = bases.slice(0, limit).map((b,i)=>({
+    title: (tokens[i%tokens.length] ? capitalize(tokens[i%tokens.length]) + ' ' : '') + b.t,
+    snippet: b.s + (tokens.length ? ' Focus: ' + tokens.join(', ') + '.' : ''),
+    relevance: b.r - i
+  }));
+  return results;
 }

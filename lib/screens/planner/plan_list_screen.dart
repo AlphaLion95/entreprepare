@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../models/plan.dart';
 import '../../services/plan_service.dart';
-import '../../services/settings_service.dart';
+import '../../services/currency_scope.dart';
 import '../../utils/currency_utils.dart';
 import 'plan_detail_screen.dart';
 import 'plan_editor_screen.dart';
@@ -15,11 +15,9 @@ class PlanListScreen extends StatefulWidget {
 
 class _PlanListScreenState extends State<PlanListScreen> {
   final PlanService _service = PlanService();
-  final SettingsService _settingsSvc = SettingsService();
   List<Plan> _plans = [];
   bool _loading = true;
-  String _currency = 'PHP';
-  late final Stream<Settings?> _settingsStream;
+  // currency now read from CurrencyScope
   String _query = '';
   String _sort = 'date'; // 'date' | 'net'
 
@@ -27,11 +25,6 @@ class _PlanListScreenState extends State<PlanListScreen> {
   void initState() {
     super.initState();
     _load();
-    _settingsStream = _settingsSvc.watchSettings();
-    _settingsStream.listen((s) {
-      if (!mounted) return;
-      setState(() => _currency = (s?.currency ?? 'PHP'));
-    });
   }
 
   Future<void> _load() async {
@@ -179,6 +172,7 @@ class _PlanListScreenState extends State<PlanListScreen> {
                   final p = _filtered[i - 1];
                   final progress = _progressOf(p);
                   final netProfit = p.monthlyNetProfit;
+                  final currency = CurrencyScope.of(context).currency;
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Card(
@@ -229,19 +223,19 @@ class _PlanListScreenState extends State<PlanListScreen> {
                                       children: [
                                         Chip(
                                           label: Text(
-                                            '${formatCurrency(netProfit, _currency)}/mo',
+                                            '${formatCurrency(netProfit, currency)}/mo',
                                           ),
                                           visualDensity: VisualDensity.compact,
                                         ),
                                         Chip(
                                           label: Text(
-                                            'Revenue: ${formatCurrency(p.monthlyRevenue, _currency)}',
+                                            'Revenue: ${formatCurrency(p.monthlyRevenue, currency)}',
                                           ),
                                           visualDensity: VisualDensity.compact,
                                         ),
                                         Chip(
                                           label: Text(
-                                            'OpEx: ${formatCurrency(p.monthlyOperatingExpenses, _currency)}',
+                                            'OpEx: ${formatCurrency(p.monthlyOperatingExpenses, currency)}',
                                           ),
                                           visualDensity: VisualDensity.compact,
                                         ),

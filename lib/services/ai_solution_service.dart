@@ -87,12 +87,18 @@ class AiSolutionService {
         'limit': 3,
       });
       final list = (data['solutions'] as List? ?? [])
-          .map((e) => ProblemSolutionSuggestion.fromMap(Map<String,dynamic>.from(e as Map)))
-          .where((s)=> s.title.isNotEmpty && s.steps.isNotEmpty)
+          .map(
+            (e) => ProblemSolutionSuggestion.fromMap(
+              Map<String, dynamic>.from(e as Map),
+            ),
+          )
+          .where((s) => s.title.isNotEmpty && s.steps.isNotEmpty)
           .toList();
       return list;
     } on AiApiException catch (e) {
-      throw Exception('AI solutions failed: ${e.code}${e.message!=null?': '+e.message!:''}');
+      throw Exception(
+        'AI solutions failed: ${e.code}${e.message != null ? ': ' + e.message! : ''}',
+      );
     }
   }
 

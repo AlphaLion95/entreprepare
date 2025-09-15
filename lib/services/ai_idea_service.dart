@@ -6,10 +6,7 @@ class AiIdeaService {
   late final AiApiClient _client;
 
   AiIdeaService() {
-    _client = AiApiClient(
-      baseUrl: kAiIdeasEndpoint,
-      debug: kAiDebugLogging,
-    );
+    _client = AiApiClient(baseUrl: kAiIdeasEndpoint, debug: kAiDebugLogging);
   }
   Future<List<String>> getIdeas(String query) async {
     final q = query.trim().toLowerCase();
@@ -32,9 +29,14 @@ class AiIdeaService {
     try {
       final data = await _client.postType('ideas', {'query': q, 'limit': 8});
       final ideas = (data['ideas'] as List?) ?? [];
-      return ideas.map((e) => e.toString().trim()).where((s)=>s.isNotEmpty).toList();
+      return ideas
+          .map((e) => e.toString().trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
     } on AiApiException catch (e) {
-      throw Exception('AI ideas failed: ${e.code}${e.message!=null?': '+e.message!:''}');
+      throw Exception(
+        'AI ideas failed: ${e.code}${e.message != null ? ': ' + e.message! : ''}',
+      );
     }
   }
 }

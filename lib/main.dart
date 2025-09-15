@@ -6,6 +6,9 @@ import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_tabs_page.dart';
 import 'config/auth_toggle.dart';
+import 'services/currency_notifier.dart';
+import 'services/settings_service.dart';
+import 'services/currency_scope.dart';
 
 Future<void> checkTokenAndSignOutIfRevoked() async {
   final user = FirebaseAuth.instance.currentUser;
@@ -36,10 +39,13 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Timer? _tokenCheckTimer;
+  late final CurrencyNotifier _currencyNotifier;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _currencyNotifier = CurrencyNotifier(SettingsService());
+    _currencyNotifier.initialize();
     if (!kAuthDisabled) {
       _tokenCheckTimer = Timer.periodic(const Duration(minutes: 2), (_) {
         checkTokenAndSignOutIfRevoked();
@@ -63,7 +69,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return CurrencyScope(
+      notifier: _currencyNotifier,
+      child: MaterialApp(
       title: 'EntrePrepare',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -117,6 +125,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 return const MainTabsPage();
               },
             ),
-    );
+    ));
   }
 }
+
+/// InheritedWidget to expose CurrencyNotifier without external packages.
+// CurrencyScope moved to services/currency_scope.dart for reuse.

@@ -87,12 +87,15 @@ class Plan {
   final double breakevenMonths; // months to breakeven
   final DateTime createdAt;
   final int planVersion; // schema version for forward evolution
-  final List<double> projectedRevenueMonths; // 6-month forward revenue projection
+  final List<double>
+  projectedRevenueMonths; // 6-month forward revenue projection
   final List<double> grossProfitMonths; // 6-month gross profit projection
   final List<double> netProfitMonths; // 6-month net profit projection
   final List<double> cumulativeNetProfitMonths; // cumulative net profit
-  final int? computedBreakevenMonth; // 1-based month number when cumulative net turns >=0
-  final List<String> validationWarnings; // server-side flags for implausible values
+  final int?
+  computedBreakevenMonth; // 1-based month number when cumulative net turns >=0
+  final List<String>
+  validationWarnings; // server-side flags for implausible values
 
   Plan({
     required this.id,
@@ -168,12 +171,14 @@ class Plan {
     id: id,
     businessId: (m['businessId'] ?? '').toString(),
     title: (m['title'] ?? '').toString(),
-  summary: (m['summary'] ?? '').toString(),
+    summary: (m['summary'] ?? '').toString(),
     capitalEstimated: (m['capitalEstimated'] ?? 0).toDouble(),
     pricePerUnit: (m['pricePerUnit'] ?? 0).toDouble(),
     estMonthlySales: (m['estMonthlySales'] ?? 0) as int,
-  salesAssumptions: (m['salesAssumptions'] as List<dynamic>? ?? []).map((e)=>e.toString()).toList(),
-  growthPctMonth: (m['growthPctMonth'] ?? 0).toDouble(),
+    salesAssumptions: (m['salesAssumptions'] as List<dynamic>? ?? [])
+        .map((e) => e.toString())
+        .toList(),
+    growthPctMonth: (m['growthPctMonth'] ?? 0).toDouble(),
     inventory: (m['inventory'] as List<dynamic>? ?? [])
         .map((e) => PlanItem.fromMap(Map<String, dynamic>.from(e)))
         .toList(),
@@ -183,54 +188,86 @@ class Plan {
     expenses: (m['expenses'] as List<dynamic>? ?? [])
         .map((e) => ExpenseItem.fromMap(Map<String, dynamic>.from(e)))
         .toList(),
-  innovations: (m['innovations'] as List<dynamic>? ?? []).map((e)=>e.toString()).toList(),
-  grossMarginPct: (m['grossMarginPct'] ?? 0).toDouble(),
-  operatingMarginPct: (m['operatingMarginPct'] ?? 0).toDouble(),
-  breakevenMonths: (m['breakevenMonths'] ?? 0).toDouble(),
+    innovations: (m['innovations'] as List<dynamic>? ?? [])
+        .map((e) => e.toString())
+        .toList(),
+    grossMarginPct: (m['grossMarginPct'] ?? 0).toDouble(),
+    operatingMarginPct: (m['operatingMarginPct'] ?? 0).toDouble(),
+    breakevenMonths: (m['breakevenMonths'] ?? 0).toDouble(),
     createdAt: m['createdAt'] is Timestamp
         ? (m['createdAt'] as Timestamp).toDate()
         : DateTime.now(),
-  planVersion: (m['planVersion'] ?? 1) as int,
-  projectedRevenueMonths: (m['projectedRevenueMonths'] as List<dynamic>? ?? []).map((e){
-    try { return (e is num) ? e.toDouble() : double.parse(e.toString()); } catch(_){ return 0.0; }
-  }).toList(),
-  grossProfitMonths: (m['grossProfitMonths'] as List<dynamic>? ?? []).map((e){
-    try { return (e is num) ? e.toDouble() : double.parse(e.toString()); } catch(_){ return 0.0; }
-  }).toList(),
-  netProfitMonths: (m['netProfitMonths'] as List<dynamic>? ?? []).map((e){
-    try { return (e is num) ? e.toDouble() : double.parse(e.toString()); } catch(_){ return 0.0; }
-  }).toList(),
-  cumulativeNetProfitMonths: (m['cumulativeNetProfitMonths'] as List<dynamic>? ?? []).map((e){
-    try { return (e is num) ? e.toDouble() : double.parse(e.toString()); } catch(_){ return 0.0; }
-  }).toList(),
-  computedBreakevenMonth: m['computedBreakevenMonth'] == null ? null : int.tryParse(m['computedBreakevenMonth'].toString()),
-  validationWarnings: (m['validationWarnings'] as List<dynamic>? ?? []).map((e)=> e.toString()).toList(),
+    planVersion: (m['planVersion'] ?? 1) as int,
+    projectedRevenueMonths:
+        (m['projectedRevenueMonths'] as List<dynamic>? ?? []).map((e) {
+          try {
+            return (e is num) ? e.toDouble() : double.parse(e.toString());
+          } catch (_) {
+            return 0.0;
+          }
+        }).toList(),
+    grossProfitMonths: (m['grossProfitMonths'] as List<dynamic>? ?? []).map((
+      e,
+    ) {
+      try {
+        return (e is num) ? e.toDouble() : double.parse(e.toString());
+      } catch (_) {
+        return 0.0;
+      }
+    }).toList(),
+    netProfitMonths: (m['netProfitMonths'] as List<dynamic>? ?? []).map((e) {
+      try {
+        return (e is num) ? e.toDouble() : double.parse(e.toString());
+      } catch (_) {
+        return 0.0;
+      }
+    }).toList(),
+    cumulativeNetProfitMonths:
+        (m['cumulativeNetProfitMonths'] as List<dynamic>? ?? []).map((e) {
+          try {
+            return (e is num) ? e.toDouble() : double.parse(e.toString());
+          } catch (_) {
+            return 0.0;
+          }
+        }).toList(),
+    computedBreakevenMonth: m['computedBreakevenMonth'] == null
+        ? null
+        : int.tryParse(m['computedBreakevenMonth'].toString()),
+    validationWarnings: (m['validationWarnings'] as List<dynamic>? ?? [])
+        .map((e) => e.toString())
+        .toList(),
   );
 
   // Compute 6-month revenue projection if not stored
   Plan withComputedProjection() {
-  if (projectedRevenueMonths.isNotEmpty && grossProfitMonths.isNotEmpty && netProfitMonths.isNotEmpty) return this;
+    if (projectedRevenueMonths.isNotEmpty &&
+        grossProfitMonths.isNotEmpty &&
+        netProfitMonths.isNotEmpty)
+      return this;
     final growth = growthPctMonth.clamp(0, 300); // cap unrealistic
-  final List<double> rev = [];
-  final List<double> gross = [];
-  final List<double> net = [];
-  final List<double> cumulative = [];
-  final avgUnitCost = inventory.isEmpty ? 0 : inventory.map((i)=>i.unitCost).fold<double>(0,(s,e)=>s+e)/inventory.length;
-  final fixed = monthlyOperatingExpenses; // already sums expenses
-  double cum = 0;
+    final List<double> rev = [];
+    final List<double> gross = [];
+    final List<double> net = [];
+    final List<double> cumulative = [];
+    final avgUnitCost = inventory.isEmpty
+        ? 0
+        : inventory.map((i) => i.unitCost).fold<double>(0, (s, e) => s + e) /
+              inventory.length;
+    final fixed = monthlyOperatingExpenses; // already sums expenses
+    double cum = 0;
     double units = estMonthlySales.toDouble();
-    for (int i=0;i<6;i++) {
+    for (int i = 0; i < 6; i++) {
       final monthRevenue = units * pricePerUnit;
-  final revenueVal = double.parse(monthRevenue.toStringAsFixed(2));
-  final cogs = revenueVal == 0 ? 0 : (units * avgUnitCost);
-  final grossVal = double.parse((revenueVal - cogs).toStringAsFixed(2));
-  final netVal = double.parse((grossVal - fixed).toStringAsFixed(2));
-  cum = double.parse((cum + netVal).toStringAsFixed(2));
-  rev.add(revenueVal);
-  gross.add(grossVal);
-  net.add(netVal);
-  cumulative.add(cum);
-      units = units * (1 + growth/100.0);
+      final revenueVal = double.parse(monthRevenue.toStringAsFixed(2));
+      final cogs = revenueVal == 0 ? 0 : (units * avgUnitCost);
+      final grossVal = double.parse((revenueVal - cogs).toStringAsFixed(2));
+      final netVal = double.parse((grossVal - fixed).toStringAsFixed(2));
+      cum = double.parse((cum + netVal).toStringAsFixed(2));
+      rev.add(revenueVal);
+      gross.add(grossVal);
+      net.add(netVal);
+      cumulative.add(cum);
+      units = units * (1 + growth / 100.0);
     }
     return Plan(
       id: id,
@@ -255,7 +292,9 @@ class Plan {
       grossProfitMonths: gross,
       netProfitMonths: net,
       cumulativeNetProfitMonths: cumulative,
-      computedBreakevenMonth: cumulative.indexWhere((v)=>v>=0) == -1 ? null : (cumulative.indexWhere((v)=>v>=0)+1),
+      computedBreakevenMonth: cumulative.indexWhere((v) => v >= 0) == -1
+          ? null
+          : (cumulative.indexWhere((v) => v >= 0) + 1),
     );
   }
 }
